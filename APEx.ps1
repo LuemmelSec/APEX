@@ -1,5 +1,6 @@
 # Post Exploitation Tool for MS Cloud
 # Combines Azure CLI and the Az and Graph PS Modules
+# Optimized and tested with PS7. Some functions might not work with PS5
 
 # Global variables to store tenant information and login accounts
 $Global:tenantDomain = "Not set"
