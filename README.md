@@ -1,12 +1,15 @@
 # APEX (previously AzurePwn)- Azure Post Exploitation Framework  
 
-An attempt to ease up post ex tasks once we have access to some sort of credentials to an Azure related account.
+An attempt to ease up post ex tasks once we have access to some sort of credentials to an Azure related account.  
+To be honest it is nothing new or spectacular. Just my old lazy ass doing some shortcuts so I don't need to remember all the commands I need over and over again.
 
 ## Architecture  
 APEX is built on a modular architecture combining:  
 - Microsoft Graph PowerShell Module : For accessing and querying Azure AD resources and dynamic groups.  
 - Azure CLI : Utilized for storage account interrogations and key vault management.  
 - Az PowerShell Module : Provides additional exploratory capabilities within Azure resources.  
+
+It has pre-buildin queries and attacks which you can use to speed things up and to also not forget to check certain stuff.
 
 ## Usage
 Just run APEX via IEX or .\APEX.ps1, however you like.  
