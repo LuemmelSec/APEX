@@ -16,9 +16,9 @@ $Global:graphModuleId = "N/A"
 
 # Header information for all menus
 function DisplayHeader {
-    Write-Host "##############" -ForegroundColor Cyan
-    Write-Host "#### APEx ####" -ForegroundColor Cyan
-    Write-Host "##############" -ForegroundColor Cyan
+    Write-Host "==================================================" -ForegroundColor Cyan
+    Write-Host "==== APEX - Azure Post Exploitation Framework ====" -ForegroundColor Cyan
+    Write-Host "==================================================" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "Tenant Name: $tenantDomain" -ForegroundColor $(if ($tenantDomain -eq "Not set") { "Red" } else { "Green" })
     Write-Host "Tenant ID: $tenantID" -ForegroundColor $(if ($tenantID -eq "Not set") { "Red" } else { "Green" })
@@ -1881,6 +1881,7 @@ function SetNewSecretForServicePrincipal {
 # Main menu structure
 function ToolMenu {
     ShowBanner
+    checkps
     while ($true) {
         Clear-Host
         DisplayHeader
@@ -1975,7 +1976,16 @@ function ShowBanner {
                       .@.%+:@-*#.:@:#@@@*.@+.+@=*%  .@:.%%.@*.@@.@:.@#:@@@%.%.    
 
 " -ForegroundColor Cyan
-    Start-Sleep -Seconds 2
+}
+
+# Check PowerShell version
+function checkps {if ($PSVersionTable.PSVersion.Major -lt 7) {
+                    Write-Host "You are running PowerShell version $($PSVersionTable.PSVersion). It is recommended to use PowerShell 7 or higher for optimal performance and compatibility with APEX." -ForegroundColor Red
+                } else {
+                    Write-Host "PowerShell version $($PSVersionTable.PSVersion) detected. You are running a compatible version of PowerShell for APEX." -ForegroundColor Green
+                }
+Write-Host "`nPress any key to continue..."
+[void][System.Console]::ReadKey($true)
 }
 
 # Start the tool
