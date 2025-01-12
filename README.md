@@ -9,7 +9,8 @@ APEX is built on a modular architecture combining:
 - Az PowerShell Module : Provides additional exploratory capabilities within Azure resources.  
 
 ## Usage
-Just run APEX via IEX or .\APEX.ps1, however you like.
+Just run APEX via IEX or .\APEX.ps1, however you like.  
+Make sure to use PS7 as some functions might not be available or work with lower PowerShell versions.
 The first steps are to set a tenant and login to the three tools.
 Afterwards it is all about the Queries and Attack menu.  
 Leverage the built-in queries to quickly get an overview of the capabilities of your current account.  
