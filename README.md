@@ -17,3 +17,6 @@ Leverage the built-in queries to quickly get an overview of the capabilities of 
 Take advantage of combining the output of the three different tools, getting as much info as possible on the stuff you are interested in.  
 Some features like the Storage and Key Vault menu allow easy navigation through available resources, making it a breeze to find the juice stuff and exfiltrate it.
 More on this on YouTube: https://www.youtube.com/watch?v=wDbf-JVsW5c
+
+![APEX](https://github.com/user-attachments/assets/ec80621d-93e2-42d7-8714-6ee02c01dfa5)
+
