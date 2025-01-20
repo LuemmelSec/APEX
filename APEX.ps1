@@ -527,7 +527,8 @@ function GraphPSLoginMenu {
         DisplayHeader
         Write-Host "Microsoft Graph PowerShell Module Login" -ForegroundColor Cyan
         Write-Host "1. Interactively"
-        Write-Host "2. Device Code"
+        Write-Host "2. Access Token"
+        Write-Host "3. Device Code"
         Write-Host "B. Back to Login Menu"
 
         $userInput = Read-Host -Prompt "Select a login method"
@@ -536,6 +537,9 @@ function GraphPSLoginMenu {
                 Login-GraphModule
             }
             "2" {
+                Login-GraphModule-AT
+            }
+            "3" {
                 Login-GraphModule-DC
             }
             "B" {
@@ -569,6 +573,32 @@ function Login-GraphModule {
     }
     catch {
         Write-Host "Failed to login to Microsoft Graph PS module: $_" -ForegroundColor Red
+    }
+}
+
+# Function to login to Microsoft Graph PowerShell module via Access Token
+function Login-GraphModule-AT {
+    ResetGraphModuleDetails
+    Write-Host "Logging into Microsoft Graph PS module with Access Token using tenant '$tenantID'..." -ForegroundColor Yellow
+    Write-Host "Enter the Access Token" -ForegroundColor Yellow
+    $AccessToken = Read-Host
+    $SecureToken = $AccessToken | ConvertTo-SecureString -AsPlainText -Force
+
+    try {
+        # Clear any existing session
+        Disconnect-MgGraph -ErrorAction SilentlyContinue
+        
+        if ($tenantID -ne "Not set") {
+            Connect-MgGraph -AccessToken $SecureToken -ErrorAction Stop
+            $Global:graphModuleAccount = (Get-MgContext).Account
+            $Global:graphModuleId = (Get-MgUser -UserId $Global:graphModuleAccount).Id
+            Write-Host "Successfully logged into Microsoft Graph PowerShell module as $graphModuleAccount." -ForegroundColor Green
+        } else {
+            Write-Host "Tenant must be set before logging in. Please set the tenant first." -ForegroundColor Red
+        }
+    }
+    catch {
+        Write-Host "Failed to login to Microsoft Graph PowerShell module: $_" -ForegroundColor Red
     }
 }
 
