@@ -219,38 +219,24 @@ function LoginMenu {
         Clear-Host
         DisplayHeader
         Write-Host "Login Menu" -ForegroundColor Cyan
-        Write-Host "1. Login to Azure CLI"
-        Write-Host "2. Login to Az PowerShell Module"
-        Write-Host "3. Login to Microsoft Graph PowerShell Module"
-        Write-Host "4. Login to Azure CLI as Service Principal"
-        Write-Host "5. Login to Az PS Module as Service Principal"
-        Write-Host "6. Get Access Token"
+        Write-Host "1. Azure CLI Login"
+        Write-Host "2. Az PowerShell Module Login"
+        Write-Host "3. Microsoft Graph PowerShell Module Login"
+        Write-Host "4. Get AccessToken"
         Write-Host "B. Return to Main Menu"
 
         $userInput = Read-Host -Prompt "Select an option"
         switch ($userInput) {
             "1" {
-                Login-AzureCLI
-                Write-Host "`nPress any key to continue..."
-                [void][System.Console]::ReadKey($true)
+                AzureCLILoginMenu
             }
             "2" {
-                Login-AzModule
-                Write-Host "`nPress any key to continue..."
-                [void][System.Console]::ReadKey($true)
+                AzPSLoginMenu
             }
             "3" {
-                Login-GraphModule
-                Write-Host "`nPress any key to continue..."
-                [void][System.Console]::ReadKey($true)
+                GraphPSLoginMenu
             }
             "4" {
-                Login-ServicePrincipalCLI
-            }
-            "5" {
-                Login-ServicePrincipalPS
-            }
-            "6" {
                 GetAccessToken
             }
             "B" {
@@ -263,74 +249,6 @@ function LoginMenu {
             }
         }
     }
-}
-
-# Function to login to Azure CLI as a service principal
-function Login-ServicePrincipalCLI {
-    ResetAzureCliDetails
-    Clear-Host
-    DisplayHeader
-    Write-Host "Login to Azure CLI as Service Principal" -ForegroundColor Cyan
-    Write-Host "Enter the application (client) ID:" -ForegroundColor Yellow
-    $appId = Read-Host
-
-    Write-Host "Enter the client secret:" -ForegroundColor Yellow
-    $clientSecret = Read-Host
-
-    try {
-        az logout
-
-        az login --service-principal -u $appId -p $clientSecret --tenant $Global:tenantId
-
-        $spDetails = az ad sp show --id $appId --query "{Name: displayName, Id: id, SpName: appId}" -o json | ConvertFrom-Json
-        $Global:azureCliAccount = $spDetails.Name
-        $Global:azureCliId = $spDetails.Id
-        $Global:azureCliSPName = $spDetails.SpName
-        
-        Write-Host "Successfully logged into Azure CLI as Service Principal ($spDetails.Name)." -ForegroundColor Green
-    }
-    catch {
-        Write-Host "Failed to login to Azure CLI as Service Principal: $_" -ForegroundColor Red
-    }
-
-    Write-Host "`nPress any key to return to the login menu..."
-    [void][System.Console]::ReadKey($true)
-}
-
-# Function to login to Az PowerShell module as a service principal
-function Login-ServicePrincipalPS {
-    ResetAzModuleDetails
-    Clear-Host
-    DisplayHeader
-    Write-Host "Login to Az PS Module as Service Principal" -ForegroundColor Cyan
-    Write-Host "Enter the application (client) ID:" -ForegroundColor Yellow
-    $appId = Read-Host
-
-    Write-Host "Enter the client secret:" -ForegroundColor Yellow
-    $clientSecret = Read-Host
-
-   # Log out of existing sessions
-    Disconnect-AzAccount -ErrorAction SilentlyContinue
-
-    # Convert client secret to SecureString and create PSCredential
-    $secureSecret = ConvertTo-SecureString $clientSecret -AsPlainText -Force
-    $psCredential = [System.Management.Automation.PSCredential]::new($appId, $secureSecret)
-    
-    try {
-        Connect-AzAccount -ServicePrincipal -Credential $psCredential -TenantId $Global:tenantID -ErrorAction Stop
-        $spDetails = Get-AzADServicePrincipal -ApplicationId $appId
-        $Global:azModuleAccount = $spDetails.AppDisplayName 
-        $Global:azModuleId = $spDetails.Id
-        $Global:azModuleSPName = $spDetails.AppId
-
-        Write-Host "Successfully logged into Az PowerShell module as Service Principal ($spDetails.DisplayName)." -ForegroundColor Green
-    }
-    catch {
-        Write-Host "Detailed error during login: $($_.Exception.Message)" -ForegroundColor Red
-    }
-
-    Write-Host "`nPress any key to return to the login menu..."
-    [void][System.Console]::ReadKey($true)
 }
 
 # Function to get access tokens
@@ -367,6 +285,36 @@ function GetAccessToken {
     [void][System.Console]::ReadKey($true)
 }
 
+# Azure CLI Login Menu
+function AzureCLILoginMenu {
+    while ($true) {
+        Clear-Host
+        DisplayHeader
+        Write-Host "Azure CLI Login" -ForegroundColor Cyan
+        Write-Host "1. Interactively"
+        Write-Host "2. As Service Principal"
+        Write-Host "B. Back to Login Menu"
+
+        $userInput = Read-Host -Prompt "Select a login method"
+        switch ($userInput) {
+            "1" {
+                Login-AzureCLI
+            }
+            "2" {
+                Login-AzureCLI-SP
+            }
+            "B" {
+                return
+            }
+            default {
+                Write-Host "Invalid selection, please try again."
+                Write-Host "`nPress any key to continue..."
+                [void][System.Console]::ReadKey($true)
+            }
+        }
+    }
+}
+
 # Function to login to Azure CLI
 function Login-AzureCLI {
     ResetAzureCliDetails
@@ -392,6 +340,76 @@ function Login-AzureCLI {
     }
 }
 
+# Function to login to Azure CLI as a service principal
+function Login-AzureCLI-SP {
+    ResetAzureCliDetails
+    Clear-Host
+    DisplayHeader
+    Write-Host "Login to Azure CLI as Service Principal" -ForegroundColor Cyan
+    Write-Host "Enter the application (client) ID:" -ForegroundColor Yellow
+    $appId = Read-Host
+
+    Write-Host "Enter the client secret:" -ForegroundColor Yellow
+    $clientSecret = Read-Host
+
+    try {
+        az logout
+
+        az login --service-principal -u $appId -p $clientSecret --tenant $Global:tenantId
+
+        $spDetails = az ad sp show --id $appId --query "{Name: displayName, Id: id, SpName: appId}" -o json | ConvertFrom-Json
+        $Global:azureCliAccount = $spDetails.Name
+        $Global:azureCliId = $spDetails.Id
+        $Global:azureCliSPName = $spDetails.SpName
+        
+        Write-Host "Successfully logged into Azure CLI as Service Principal ($spDetails.Name)." -ForegroundColor Green
+    }
+    catch {
+        Write-Host "Failed to login to Azure CLI as Service Principal: $_" -ForegroundColor Red
+    }
+
+    Write-Host "`nPress any key to return to the login menu..."
+    [void][System.Console]::ReadKey($true)
+}
+
+# Az PowerShell Module Login Menu
+function AzPSLoginMenu {
+    while ($true) {
+        Clear-Host
+        DisplayHeader
+        Write-Host "Az PowerShell Module Login" -ForegroundColor Cyan
+        Write-Host "1. Interactively"
+        Write-Host "2. AccessToken"
+        Write-Host "3. DeviceCode"
+        Write-Host "4. ServicePrincipal"
+        Write-Host "B. Back to Login Menu"
+
+        $userInput = Read-Host -Prompt "Select a login method"
+        switch ($userInput) {
+            "1" {
+                Login-AzModule
+            }
+            "2" {
+                Login-AzModule-AT
+            }
+            "3" {
+                Login-AzModule-DC
+            }
+            "4" {
+                Login-AzModule-SP
+            }
+            "B" {
+                return
+            }
+            default {
+                Write-Host "Invalid selection, please try again."
+                Write-Host "`nPress any key to continue..."
+                [void][System.Console]::ReadKey($true)
+            }
+        }
+    }
+}
+
 # Function to login to Az PowerShell module
 function Login-AzModule {
     ResetAzModuleDetails
@@ -413,6 +431,125 @@ function Login-AzModule {
     }
 }
 
+# Function to login to Az PowerShell module with AccessToken
+function Login-AzModule-AT {
+    ResetAzModuleDetails
+    Clear-Host
+    DisplayHeader
+    Write-Host "Login to Az PS Module with AccessToken" -ForegroundColor Cyan
+    Write-Host "Enter the AccessToken" -ForegroundColor Yellow
+    $AccessToken = Read-Host
+
+    Write-Host "Enter the account (id or name)" -ForegroundColor Yellow
+    $id = Read-Host
+
+   # Log out of existing sessions
+    Disconnect-AzAccount -ErrorAction SilentlyContinue
+
+    try {
+        Disconnect-AzAccount -ErrorAction SilentlyContinue
+        if ($tenantID -ne "Not set") {
+            $account = Connect-AzAccount -accesstoken $AccessToken -AccountId $id -TenantId $Global:tenantID -ErrorAction Stop
+            $Global:azModuleAccount = (Get-AzContext).Account.Id
+            $userId = (Get-AzADUser -UserPrincipalName $Global:azModuleAccount).Id
+            $Global:azModuleId = $userId
+            Write-Host "Successfully logged into Az PowerShell module as $azModuleAccount." -ForegroundColor Green
+        } else {
+            Write-Host "Tenant must be set before logging in. Please set the tenant first." -ForegroundColor Red
+        }
+    }
+    catch {
+        Write-Host "Failed to login to Az PowerShell module: $_" -ForegroundColor Red
+    }
+}
+
+# Function to login to Az PowerShell module
+function Login-AzModule-DC {
+    ResetAzModuleDetails
+    Write-Host "Logging into Az PowerShell module via Devicecode flow using tenant '$tenantID'..." -ForegroundColor Yellow
+    try {
+        Disconnect-AzAccount -ErrorAction SilentlyContinue
+        if ($tenantID -ne "Not set") {
+            $account = Connect-AzAccount -Tenant $tenantID -devicecode -ErrorAction Stop
+            $Global:azModuleAccount = (Get-AzContext).Account.Id
+            $userId = (Get-AzADUser -UserPrincipalName $Global:azModuleAccount).Id
+            $Global:azModuleId = $userId
+            Write-Host "Successfully logged into Az PowerShell module as $azModuleAccount." -ForegroundColor Green
+        } else {
+            Write-Host "Tenant must be set before logging in. Please set the tenant first." -ForegroundColor Red
+        }
+    }
+    catch {
+        Write-Host "Failed to login to Az PowerShell module: $_" -ForegroundColor Red
+    }
+}
+
+# Function to login to Az PowerShell module as a service principal
+function Login-AzModule-SP {
+    ResetAzModuleDetails
+    Clear-Host
+    DisplayHeader
+    Write-Host "Login to Az PS Module as Service Principal" -ForegroundColor Cyan
+    Write-Host "Enter the application (client) ID:" -ForegroundColor Yellow
+    $appId = Read-Host
+
+    Write-Host "Enter the client secret:" -ForegroundColor Yellow
+    $clientSecret = Read-Host
+
+   # Log out of existing sessions
+    Disconnect-AzAccount -ErrorAction SilentlyContinue
+
+    # Convert client secret to SecureString and create PSCredential
+    $secureSecret = ConvertTo-SecureString $clientSecret -AsPlainText -Force
+    $psCredential = [System.Management.Automation.PSCredential]::new($appId, $secureSecret)
+    
+    try {
+        Connect-AzAccount -ServicePrincipal -Credential $psCredential -TenantId $Global:tenantID -ErrorAction Stop
+        $spDetails = Get-AzADServicePrincipal -ApplicationId $appId
+        $Global:azModuleAccount = $spDetails.AppDisplayName 
+        $Global:azModuleId = $spDetails.Id
+        $Global:azModuleSPName = $spDetails.AppId
+
+        Write-Host "Successfully logged into Az PowerShell module as Service Principal ($spDetails.DisplayName)." -ForegroundColor Green
+    }
+    catch {
+        Write-Host "Detailed error during login: $($_.Exception.Message)" -ForegroundColor Red
+    }
+
+    Write-Host "`nPress any key to return to the login menu..."
+    [void][System.Console]::ReadKey($true)
+}
+
+# Microsoft Graph PowerShell Module Login Menu
+function GraphPSLoginMenu {
+    while ($true) {
+        Clear-Host
+        DisplayHeader
+        Write-Host "Microsoft Graph PowerShell Module Login" -ForegroundColor Cyan
+        Write-Host "1. Interactively"
+        Write-Host "2. Device Code"
+        Write-Host "B. Back to Login Menu"
+
+        $userInput = Read-Host -Prompt "Select a login method"
+        switch ($userInput) {
+            "1" {
+                Login-GraphModule
+            }
+            "2" {
+                Login-GraphModule-DC
+            }
+            "B" {
+                return
+            }
+            default {
+                Write-Host "Invalid selection, please try again."
+                Write-Host "`nPress any key to continue..."
+                [void][System.Console]::ReadKey($true)
+            }
+        }
+    }
+}
+
 # Function to login to Microsoft Graph PowerShell module
 function Login-GraphModule {
     ResetGraphModuleDetails
@@ -422,7 +559,29 @@ function Login-GraphModule {
         Disconnect-MgGraph -ErrorAction SilentlyContinue
         
         if ($tenantID -ne "Not set") {
-            $session = Connect-MgGraph -TenantId $tenantID -ErrorAction Stop
+            Connect-MgGraph -TenantId $tenantID -ErrorAction Stop
+            $Global:graphModuleAccount = (Get-MgContext).Account
+            $Global:graphModuleId = (Get-MgUser -UserId $Global:graphModuleAccount).Id
+            Write-Host "Successfully logged into Microsoft Graph PowerShell module as $graphModuleAccount." -ForegroundColor Green
+        } else {
+            Write-Host "Tenant must be set before logging in. Please set the tenant first." -ForegroundColor Red
+        }
+    }
+    catch {
+        Write-Host "Failed to login to Microsoft Graph PowerShell module: $_" -ForegroundColor Red
+    }
+}
+
+# Function to login to Microsoft Graph PowerShell module via Devicecode
+function Login-GraphModule-DC {
+    ResetGraphModuleDetails
+    Write-Host "Logging into Microsoft Graph PowerShell module via Devicecode flow using tenant '$tenantID'..." -ForegroundColor Yellow
+    try {
+        # Clear any existing session
+        Disconnect-MgGraph -ErrorAction SilentlyContinue
+        
+        if ($tenantID -ne "Not set") {
+            Connect-MgGraph -TenantId $tenantID -UseDeviceAuthentication -ErrorAction Stop
             $Global:graphModuleAccount = (Get-MgContext).Account
             $Global:graphModuleId = (Get-MgUser -UserId $Global:graphModuleAccount).Id
             Write-Host "Successfully logged into Microsoft Graph PowerShell module as $graphModuleAccount." -ForegroundColor Green
@@ -454,7 +613,8 @@ function QueriesMenu {
         Write-Host "11. Password Policy (Graph only)"
         Write-Host "12. Get App Details (CLI only)"
         Write-Host "13. Dynamic Groups (Graph only)"
-        Write-Host "14. Raw Command Prompt"
+        Write-Host "14. MFASweep - Imports and runs Dafthack's MFASweep"
+        Write-Host "15. Raw Command Prompt"
         Write-Host "B. Return to Main Menu"
 
         $userInput = Read-Host -Prompt "Select an option"
@@ -499,6 +659,9 @@ function QueriesMenu {
                 DynamicGroupsQuery
             }
             "14" {
+                MFASweep
+            }
+            "15" {
                 RawCommandPrompt
             }
             "B" {
@@ -511,6 +674,21 @@ function QueriesMenu {
             }
         }
     }
+}
+
+# Function to invoke MFASweep directly from GitHub https://github.com/dafthack/MFASweep
+function MFASweep {
+    Clear-Host
+    DisplayHeader
+    Write-Host "MFA Sweep" -ForegroundColor Cyan
+
+    # Download and execute MFASweep 
+    Write-Host "Downloading and running MFASweep from GitHub..." -ForegroundColor Yellow
+    iex(New-Object Net.WebClient).DownloadString("https://raw.githubusercontent.com/dafthack/MFASweep/master/MFASweep.ps1")
+    Invoke-MFASweep
+    
+    Write-Host "`nPress any key to return to the queries menu..."
+    [void][System.Console]::ReadKey($true)
 }
 
 # Function to query dynamic groups using Microsoft Graph PowerShell
