@@ -2237,7 +2237,8 @@ Write-Host "`nPress any key to continue..."
 }
 
 # Stolen and altered GraphRunner stuff
-Copyright (c) 2023 Beau Bullock
+# Copyright (c) 2023 Beau Bullock
+# https://github.com/dafthack/GraphRunner
 function Get-GraphTokens{
     [CmdletBinding()]
     param(
