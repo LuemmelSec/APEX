@@ -292,7 +292,7 @@ function AzureCLILoginMenu {
         DisplayHeader
         Write-Host "Azure CLI Login" -ForegroundColor Cyan
         Write-Host "1. Interactively"
-        Write-Host "2. As Service Principal"
+        Write-Host "2. Service Principal"
         Write-Host "B. Back to Login Menu"
 
         $userInput = Read-Host -Prompt "Select a login method"
@@ -379,9 +379,9 @@ function AzPSLoginMenu {
         DisplayHeader
         Write-Host "Az PowerShell Module Login" -ForegroundColor Cyan
         Write-Host "1. Interactively"
-        Write-Host "2. AccessToken"
-        Write-Host "3. DeviceCode"
-        Write-Host "4. ServicePrincipal"
+        Write-Host "2. Access Token"
+        Write-Host "3. Device Code"
+        Write-Host "4. Service Principal"
         Write-Host "B. Back to Login Menu"
 
         $userInput = Read-Host -Prompt "Select a login method"
@@ -436,11 +436,11 @@ function Login-AzModule-AT {
     ResetAzModuleDetails
     Clear-Host
     DisplayHeader
-    Write-Host "Login to Az PS Module with AccessToken" -ForegroundColor Cyan
-    Write-Host "Enter the AccessToken" -ForegroundColor Yellow
+    Write-Host "Login to Az PS Module with Access Token" -ForegroundColor Cyan
+    Write-Host "Enter the Access Token" -ForegroundColor Yellow
     $AccessToken = Read-Host
 
-    Write-Host "Enter the account (id or name)" -ForegroundColor Yellow
+    Write-Host "Enter the Account (Id or Name)" -ForegroundColor Yellow
     $id = Read-Host
 
    # Log out of existing sessions
@@ -466,7 +466,7 @@ function Login-AzModule-AT {
 # Function to login to Az PowerShell module
 function Login-AzModule-DC {
     ResetAzModuleDetails
-    Write-Host "Logging into Az PowerShell module via Devicecode flow using tenant '$tenantID'..." -ForegroundColor Yellow
+    Write-Host "Logging into Az PS module via Device Code flow using tenant '$tenantID'..." -ForegroundColor Yellow
     try {
         Disconnect-AzAccount -ErrorAction SilentlyContinue
         if ($tenantID -ne "Not set") {
@@ -553,7 +553,7 @@ function GraphPSLoginMenu {
 # Function to login to Microsoft Graph PowerShell module
 function Login-GraphModule {
     ResetGraphModuleDetails
-    Write-Host "Logging into Microsoft Graph PowerShell module using tenant '$tenantID'..." -ForegroundColor Yellow
+    Write-Host "Logging into Microsoft Graph PS module using tenant '$tenantID'..." -ForegroundColor Yellow
     try {
         # Clear any existing session
         Disconnect-MgGraph -ErrorAction SilentlyContinue
@@ -562,20 +562,20 @@ function Login-GraphModule {
             Connect-MgGraph -TenantId $tenantID -ErrorAction Stop
             $Global:graphModuleAccount = (Get-MgContext).Account
             $Global:graphModuleId = (Get-MgUser -UserId $Global:graphModuleAccount).Id
-            Write-Host "Successfully logged into Microsoft Graph PowerShell module as $graphModuleAccount." -ForegroundColor Green
+            Write-Host "Successfully logged into Microsoft Graph PS module as $graphModuleAccount." -ForegroundColor Green
         } else {
             Write-Host "Tenant must be set before logging in. Please set the tenant first." -ForegroundColor Red
         }
     }
     catch {
-        Write-Host "Failed to login to Microsoft Graph PowerShell module: $_" -ForegroundColor Red
+        Write-Host "Failed to login to Microsoft Graph PS module: $_" -ForegroundColor Red
     }
 }
 
 # Function to login to Microsoft Graph PowerShell module via Devicecode
 function Login-GraphModule-DC {
     ResetGraphModuleDetails
-    Write-Host "Logging into Microsoft Graph PowerShell module via Devicecode flow using tenant '$tenantID'..." -ForegroundColor Yellow
+    Write-Host "Logging into Microsoft Graph PS module via Device Code flow using tenant '$tenantID'..." -ForegroundColor Yellow
     try {
         # Clear any existing session
         Disconnect-MgGraph -ErrorAction SilentlyContinue
