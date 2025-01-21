@@ -643,7 +643,7 @@ function QueriesMenu {
         Write-Host "11. Password Policy (Graph only)"
         Write-Host "12. Get App Details (CLI only)"
         Write-Host "13. Dynamic Groups (Graph only)"
-        Write-Host "14. Conditional Access Policies (Graph only)"
+        Write-Host "14. Conditional Access Policies as low Priv User (needs AZ CLI and Graph Session)"
         Write-Host "15. Raw Command Prompt"
         Write-Host "B. Return to Main Menu"
 
