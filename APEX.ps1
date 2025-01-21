@@ -643,7 +643,8 @@ function QueriesMenu {
         Write-Host "11. Password Policy (Graph only)"
         Write-Host "12. Get App Details (CLI only)"
         Write-Host "13. Dynamic Groups (Graph only)"
-        Write-Host "14. Raw Command Prompt"
+        Write-Host "14. Conditional Access Policies (Graph only)"
+        Write-Host "15. Raw Command Prompt"
         Write-Host "B. Return to Main Menu"
 
         $userInput = Read-Host -Prompt "Select an option"
@@ -688,6 +689,9 @@ function QueriesMenu {
                 DynamicGroupsQuery
             }
             "14" {
+                ConditionalAccessPoliciesQuery
+            }
+            "15" {
                 RawCommandPrompt
             }
             "B" {
@@ -700,6 +704,189 @@ function QueriesMenu {
             }
         }
     }
+}
+
+# Helper Function for CAPs to resolve IDs to display names for users and applications
+function Resolve-Ids {
+    param (
+        [array]$Ids,
+        [string]$Type
+    )
+
+    $names = @{ }
+    $guidPattern = '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+    
+    foreach ($id in $Ids) {
+        if ($id -eq "All" -or $id -eq "None") {
+            $names[$id] = $id
+        } elseif ($id -match $guidPattern) {
+            try {
+                if ($Type -eq "User") {
+                    $entity = Get-MgUser -UserId $id -ErrorAction Stop
+                } elseif ($Type -eq "Application") {
+                    $entity = Get-MgServicePrincipal -Filter "AppId eq '$id'" -ErrorAction Stop
+                }
+                $names[$id] = $entity.DisplayName
+            } catch {
+                $names[$id] = "Unavailable"
+            }
+        } else {
+            $names[$id] = $id # Assume that if it's not an ID, it might already be a name
+        }
+    }
+    return $names
+}
+
+# Helper Function for CAPs to fetch data from an endpoint
+function Get-AllLegacyGraphData {
+    param (
+        [string]$AccessToken,
+        [string]$InitialEndpoint
+    )
+
+    $allResults = @()
+    $nextLink = $InitialEndpoint
+
+    while ($nextLink) {
+        $headers = @{ "Authorization" = "Bearer $AccessToken" }
+        
+        try {
+            $response = Invoke-RestMethod -Uri $nextLink -Headers $headers -Method Get
+        } catch {
+            Write-Error "Failed to fetch data from ${nextLink}: $_"
+            return $null
+        }
+        
+        if ($response.value) {
+            $allResults += $response.value
+        }
+
+        if ($response.'@odata.nextLink') {
+            $nextLink = $response.'@odata.nextLink'
+            Write-Host "Found nextLink for pagination: $nextLink"
+        } else {
+            $nextLink = $null
+        }
+    }
+    return $allResults
+}
+
+# Helper Function for CAPs to format policy details and resolve names
+function Format-PolicyDetails {
+    param (
+        [array]$Policies
+    )
+
+    foreach ($policy in $Policies) {
+        $hasExclusions = $false
+        Write-Host "`nPolicy: $($policy.displayName)" -ForegroundColor Yellow
+
+        try {
+            $details = $policy.policyDetail | ForEach-Object { ConvertFrom-Json $_ }
+            foreach ($detail in $details) {
+                if ($detail.Conditions.Users.Exclude -or
+                    $detail.Conditions.Applications.Exclude -or
+                    $detail.Conditions.DevicePlatforms.Exclude -or
+                    $detail.Conditions.ClientTypes.Exclude) {
+                    $hasExclusions = $true
+                }
+
+                if ($hasExclusions) {
+                    Write-Host "This Policy has Exclusions. Check for MFA Bypasses!!!" -ForegroundColor Red
+                }
+
+                if ($detail.Conditions.Users.Include) {
+                    $userIds = $detail.Conditions.Users.Include | ForEach-Object { $_.Users } | Select-Object -Unique
+                    $userNames = Resolve-Ids -Ids $userIds -Type "User"
+                    $includedUsers = ($userIds | ForEach-Object { $userNames[$_] }) -join ", "
+                    Write-Host "Included Users: $includedUsers"
+                }
+                
+                if ($detail.Conditions.Users.Exclude) {
+                    $userIdsEx = $detail.Conditions.Users.Exclude | ForEach-Object { $_.Users } | Select-Object -Unique
+                    $userNamesEx = Resolve-Ids -Ids $userIdsEx -Type "User"
+                    $excludedUsers = ($userIdsEx | ForEach-Object { $userNamesEx[$_] }) -join ", "
+                    Write-Host "Excluded Users: $excludedUsers"
+                }
+
+                if ($detail.Conditions.Applications.Include) {
+                    $appIds = $detail.Conditions.Applications.Include | ForEach-Object { $_.Applications } | Select-Object -Unique
+                    $appNames = Resolve-Ids -Ids $appIds -Type "Application"
+                    $includedApps = ($appIds | ForEach-Object { $appNames[$_] }) -join ", "
+                    Write-Host "Included Applications: $includedApps"
+                }
+
+                if ($detail.Conditions.Applications.Exclude) {
+                    $appIdsEx = $detail.Conditions.Applications.Exclude | ForEach-Object { $_.Applications } | Select-Object -Unique
+                    $appNamesEx = Resolve-Ids -Ids $appIdsEx -Type "Application"
+                    $excludedApps = ($appIdsEx | ForEach-Object { $appNamesEx[$_] }) -join ", "
+                    Write-Host "Excluded Applications: $excludedApps"
+                }
+
+                if ($detail.Conditions.DevicePlatforms.Include) {
+                    $DevicePlatformsInclude = ($detail.Conditions.DevicePlatforms.Include | ForEach-Object { $_.DevicePlatforms }) -join ", "
+                    Write-Host "Included DevicePlatforms: $DevicePlatformsInclude"
+                }
+
+                if ($detail.Conditions.DevicePlatforms.Exclude) {
+                    $DevicePlatformsExclude = ($detail.Conditions.DevicePlatforms.Exclude | ForEach-Object { $_.DevicePlatforms }) -join ", "
+                    Write-Host "Excluded DevicePlatforms: $DevicePlatformsExclude"
+                }
+
+                if ($detail.Conditions.ClientTypes.Include) {
+                    $ClientsInclude = ($detail.Conditions.ClientTypes.Include | ForEach-Object { $_.ClientTypes }) -join ", "
+                    Write-Host "Included Clients: $ClientsInclude"
+                }
+
+                if ($detail.Conditions.ClientTypes.Exclude) {
+                    $ClientsExclude = ($detail.Conditions.ClientTypes.Exclude | ForEach-Object { $_.ClientTypes }) -join ", "
+                    Write-Host "Excluded Clients: $ClientsExclude"
+                }
+
+                if ($detail.Controls.Control) {
+                    $controls = ($detail.Controls.Control) -join ", "
+                    Write-Host "Controls Requirements (any): $controls"
+                }
+
+                if ($detail.SessionControls) {
+                    $sessionControls = ($detail.SessionControls) -join ", "
+                    Write-Host "Session controls: $sessionControls"
+                }
+            }
+        } catch {
+            Write-Error "Failed to parse policy details: $_"
+        }
+    }
+}
+
+# Main function to fetch CAPs inspired by Roadrecon by Dirk-jan https://github.com/dirkjanm/ROADtools/tree/master/roadrecon
+function ConditionalAccessPoliciesQuery {
+    Clear-Host
+    DisplayHeader
+    Write-Host "Fetching Conditional Access Policies" -ForegroundColor Cyan
+
+    # Get a Graph Access Token from the authenticated Azure CLI session
+    $TokenResponse = az account get-access-token --resource https://graph.windows.net --tenant $Global:tenantID
+    $accessToken = ($tokenResponse | ConvertFrom-Json).accessToken
+
+    if (-not $accessToken) {
+        Write-Error "Failed to obtain access token."
+        return
+    }
+
+    # Define the policies endpoint
+    $policiesEndpoint = "https://graph.windows.net/$tenantId/policies?api-version=1.61-internal"
+    
+    # Fetch and display data from the policies endpoint
+    Write-Host "Attempting to fetch data from: $policiesEndpoint" -ForegroundColor Cyan
+    $policies = Get-AllLegacyGraphData -AccessToken $accessToken -InitialEndpoint $policiesEndpoint
+        
+    # Filter policies where policyType equals 18
+    $filteredPolicies = $policies | Where-Object { $_.policyType -eq 18 }
+    Format-PolicyDetails -Policies $filteredPolicies
+    Write-Host "`nPress any key to return to the queries menu..."
+    [void][System.Console]::ReadKey($true)
+
 }
 
 # Function to query dynamic groups using Microsoft Graph PowerShell
