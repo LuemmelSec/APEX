@@ -2085,7 +2085,7 @@ function GraphRunnerBypassMFA {
 
     # Reset global token variable
     $global:tokens = $null
-    
+
     # Define the device and browser combinations
     $devices = @('Mac', 'Windows', 'AndroidMobile', 'iPhone')
     $browsers = @('Android', 'IE', 'Chrome', 'Firefox', 'Edge', 'Safari')
@@ -2101,7 +2101,7 @@ function GraphRunnerBypassMFA {
                 
                 # Checking if the global variable $tokens has been set
                 if ($global:tokens -and $global:tokens.access_token) {
-                    Write-Host "Successful access token retrieved with $device and $browser combination:" -ForegroundColor DarkGreen
+                    Write-Host "Successful access token retrieved with -Device=$device and -Browser=$browser combination:" -ForegroundColor DarkGreen
                     Write-Host "Access Token: $($global:tokens.access_token)" -ForegroundColor DarkMagenta
                     break OuterLoop  # Exit both loops if a token is retrieved
                 } else {
@@ -2309,10 +2309,10 @@ function Get-GraphTokens{
                 
                 Write-Output "Decoded JWT payload:"
                 $tokobj
-                Write-Host -ForegroundColor Green '[*] Successful authentication. Access and refresh tokens have been written to the global $tokens variable. To use them with other GraphRunner modules use the Tokens flag (Example. Invoke-DumpApps -Tokens $tokens)'
                 $baseDate = Get-Date -date "01-01-1970"
                 $tokenExpire = $baseDate.AddSeconds($tokobj.exp).ToLocalTime()
                 Write-Host -ForegroundColor Yellow "[!] Your access token is set to expire on: $tokenExpire"
+                Write-Host -ForegroundColor Green "User Agent: $UserAgent"
             }
         } catch {
             $details = $_.ErrorDetails.Message | ConvertFrom-Json
