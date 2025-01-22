@@ -53,82 +53,6 @@ function ResetGraphModuleDetails {
     $Global:graphModuleId = "N/A"
 }
 
-# Function to set the tenant using an external API
-function Set-Tenant {
-    while ($true) {
-        Clear-Host
-        DisplayHeader
-        Write-Host "Set Tenant Menu" -ForegroundColor Cyan
-        Write-Host "Enter tenant domain:" -ForegroundColor Yellow
-        $tenantDomainInput = Read-Host
-
-        if ($tenantDomainInput -eq "B") {
-            return
-        }
-
-        if ($tenantDomainInput) {
-            try {
-                $TenantId = (Invoke-RestMethod -UseBasicParsing -Uri "https://odc.officeapps.live.com/odc/v2.1/federationprovider?domain=$tenantDomainInput").TenantId
-                
-                if ($TenantId) {
-                    $Global:tenantID = $TenantId
-                    $Global:tenantDomain = $tenantDomainInput
-                    Write-Host "Tenant set to: $tenantDomain (ID: $tenantID)" -ForegroundColor Green
-                    break
-                } else {
-                    Write-Host "Failed to retrieve tenant ID. The domain might be incorrect." -ForegroundColor Red
-                }
-            }
-            catch {
-                Write-Host "Failed to retrieve tenant details. The domain might be incorrect." -ForegroundColor Red
-            }
-        } else {
-            Write-Host "Invalid tenant input." -ForegroundColor Red
-        }
-    }
-}
-
-# Function to logout of all services and clear tenant information
-function Logout-AllServices {
-    Clear-Host
-    DisplayHeader
-    Write-Host "Logging out of all services and clearing tenant information..." -ForegroundColor Yellow
-
-    try {
-        az logout
-        Write-Host "Logged out of Azure CLI." -ForegroundColor Green
-    }
-    catch {
-        Write-Host "Failed to log out of Azure CLI." -ForegroundColor Red
-    }
-
-    try {
-        Disconnect-AzAccount -ErrorAction Stop
-        Write-Host "Logged out of Az PowerShell module." -ForegroundColor Green
-    }
-    catch {
-        Write-Host "Failed to log out of Az PowerShell module." -ForegroundColor Red
-    }
-
-    try {
-        Disconnect-MgGraph -ErrorAction Stop
-        Write-Host "Logged out of Microsoft Graph PowerShell module." -ForegroundColor Green
-    }
-    catch {
-        Write-Host "Failed to log out of Microsoft Graph PowerShell module." -ForegroundColor Red
-    }
-
-    $Global:tenantDomain = "Not set"
-    $Global:tenantID = "Not set"
-    $Global:azureCliAccount = "Not logged in"
-    $Global:azModuleAccount = "Not logged in"
-    $Global:graphModuleAccount = "Not logged in"
-
-    Write-Host "Tenant information and accounts have been cleared." -ForegroundColor Green
-    Write-Host "`nPress any key to return to the main menu..." 
-    [void][System.Console]::ReadKey($true)
-}
-
 # Function to check if Azure CLI is installed and up to date
 function Check-AzureCLI {
     Write-Host "Checking if az CLI is installed..."
@@ -219,25 +143,33 @@ function LoginMenu {
         Clear-Host
         DisplayHeader
         Write-Host "Login Menu" -ForegroundColor Cyan
-        Write-Host "1. Azure CLI Login"
-        Write-Host "2. Az PowerShell Module Login"
-        Write-Host "3. Microsoft Graph PowerShell Module Login"
-        Write-Host "4. Get AccessToken"
+        Write-Host "1. Set Tenant"
+        Write-Host "2. Azure CLI Login"
+        Write-Host "3. Az PowerShell Module Login"
+        Write-Host "4. Microsoft Graph PowerShell Module Login"
+        Write-Host "5. Get AccessToken"
+        Write-Host "6. Logout everything and forget Tenant"
         Write-Host "B. Return to Main Menu"
 
         $userInput = Read-Host -Prompt "Select an option"
         switch ($userInput) {
             "1" {
-                AzureCLILoginMenu
+                Set-Tenant
             }
             "2" {
-                AzPSLoginMenu
+                AzureCLILoginMenu
             }
             "3" {
-                GraphPSLoginMenu
+                AzPSLoginMenu
             }
             "4" {
+                GraphPSLoginMenu
+            }
+            "5" {
                 GetAccessToken
+            }
+            "6" {
+                Logout-AllServices
             }
             "B" {
                 return
@@ -247,6 +179,41 @@ function LoginMenu {
                 Write-Host "`nPress any key to continue..."
                 [void][System.Console]::ReadKey($true)
             }
+        }
+    }
+}
+
+# Function to set the tenant using an external API
+function Set-Tenant {
+    while ($true) {
+        Clear-Host
+        DisplayHeader
+        Write-Host "Set Tenant Menu" -ForegroundColor Cyan
+        Write-Host "Enter tenant domain:" -ForegroundColor Yellow
+        $tenantDomainInput = Read-Host
+
+        if ($tenantDomainInput -eq "B") {
+            return
+        }
+
+        if ($tenantDomainInput) {
+            try {
+                $TenantId = (Invoke-RestMethod -UseBasicParsing -Uri "https://odc.officeapps.live.com/odc/v2.1/federationprovider?domain=$tenantDomainInput").TenantId
+                
+                if ($TenantId) {
+                    $Global:tenantID = $TenantId
+                    $Global:tenantDomain = $tenantDomainInput
+                    Write-Host "Tenant set to: $tenantDomain (ID: $tenantID)" -ForegroundColor Green
+                    break
+                } else {
+                    Write-Host "Failed to retrieve tenant ID. The domain might be incorrect." -ForegroundColor Red
+                }
+            }
+            catch {
+                Write-Host "Failed to retrieve tenant details. The domain might be incorrect." -ForegroundColor Red
+            }
+        } else {
+            Write-Host "Invalid tenant input." -ForegroundColor Red
         }
     }
 }
@@ -622,6 +589,47 @@ function Login-GraphModule-DC {
     catch {
         Write-Host "Failed to login to Microsoft Graph PowerShell module: $_" -ForegroundColor Red
     }
+}
+
+# Function to logout of all services and clear tenant information
+function Logout-AllServices {
+    Clear-Host
+    DisplayHeader
+    Write-Host "Logging out of all services and clearing tenant information..." -ForegroundColor Yellow
+
+    try {
+        az logout
+        Write-Host "Logged out of Azure CLI." -ForegroundColor Green
+    }
+    catch {
+        Write-Host "Failed to log out of Azure CLI." -ForegroundColor Red
+    }
+
+    try {
+        Disconnect-AzAccount -ErrorAction Stop
+        Write-Host "Logged out of Az PowerShell module." -ForegroundColor Green
+    }
+    catch {
+        Write-Host "Failed to log out of Az PowerShell module." -ForegroundColor Red
+    }
+
+    try {
+        Disconnect-MgGraph -ErrorAction Stop
+        Write-Host "Logged out of Microsoft Graph PowerShell module." -ForegroundColor Green
+    }
+    catch {
+        Write-Host "Failed to log out of Microsoft Graph PowerShell module." -ForegroundColor Red
+    }
+
+    $Global:tenantDomain = "Not set"
+    $Global:tenantID = "Not set"
+    $Global:azureCliAccount = "Not logged in"
+    $Global:azModuleAccount = "Not logged in"
+    $Global:graphModuleAccount = "Not logged in"
+
+    Write-Host "Tenant information and accounts have been cleared." -ForegroundColor Green
+    Write-Host "`nPress any key to return to the main menu..." 
+    [void][System.Console]::ReadKey($true)
 }
 
 # Queries menu structure
@@ -2323,35 +2331,27 @@ function MFASweep {
 # Main menu structure
 function ToolMenu {
     ShowBanner
-    checkps
+    preflightcheck
     while ($true) {
         Clear-Host
         DisplayHeader
         Write-Host "Main Menu" -ForegroundColor Cyan
-        Write-Host "1. Set Tenant"
-        Write-Host "2. Login to Azure Services"
-        Write-Host "3. Queries"
-        Write-Host "4. Attacks"
-        Write-Host "5. Logout of all Services and forget Tenant Info"
+        Write-Host "1. Authentication"
+        Write-Host "2. Queries"
+        Write-Host "3. Attacks"
         Write-Host "C. Check Tools and Updates"
         Write-Host "Q. Quit"
 
         $userInput = Read-Host -Prompt "Select an option"
         switch ($userInput.ToUpper()) {
             "1" {
-                Set-Tenant
-            }
-            "2" {
                 LoginMenu
             }
-            "3" {
+            "2" {
                 QueriesMenu
             }
-            "4" {
+            "3" {
                 AttacksMenu
-            }
-            "5" {
-                Logout-AllServices
             }
             "C" {
                 Clear-Host
@@ -2421,14 +2421,40 @@ function ShowBanner {
 }
 
 # Check PowerShell version
-function checkps {if ($PSVersionTable.PSVersion.Major -lt 7) {
+function preflightcheck {if ($PSVersionTable.PSVersion.Major -lt 7) {
                     Write-Host "You are running PowerShell version $($PSVersionTable.PSVersion). It is recommended to use PowerShell 7 or higher for optimal performance and compatibility with APEX." -ForegroundColor Red
                 } else {
                     Write-Host "PowerShell version $($PSVersionTable.PSVersion) detected. You are running a compatible version of PowerShell for APEX." -ForegroundColor Green
                 }
+
+                # Check if Azure CLI is installed
+                try {
+                    az --version > $null
+                    Write-Host "Azure CLI is installed." -ForegroundColor Green
+                }
+                catch {
+                    Write-Host "Azure CLI is not installed." -ForegroundColor Red
+                }
+            
+                # Check if Az PowerShell Module is available
+                if (Get-Module -ListAvailable -Name Az) {
+                    Write-Host "Az PowerShell Module is installed." -ForegroundColor Green
+                } else {
+                    Write-Host "Az PowerShell Module is not installed." -ForegroundColor Red
+                }
+                
+                # Check if Microsoft Graph PowerShell Module is available
+                if (Get-Module -ListAvailable -Name Microsoft.Graph) {
+                    Write-Host "Microsoft Graph PowerShell Module is installed." -ForegroundColor Green
+                } else {
+                    Write-Host "Microsoft Graph PowerShell Module is not installed." -ForegroundColor Red
+                }
+
 Write-Host "`nPress any key to continue..."
 [void][System.Console]::ReadKey($true)
 }
+
+
 
 # Stolen and altered GraphRunner stuff
 # Copyright (c) 2023 Beau Bullock
