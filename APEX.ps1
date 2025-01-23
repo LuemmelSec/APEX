@@ -1315,7 +1315,7 @@ function RoleAssignmentsQuery {
         # Az PowerShell Module
         if ($toolChoice -eq "2" -or $toolChoice -eq "4") {
             Write-Host "AZ PS Module output:" -ForegroundColor Magenta
-            $psOutput = Get-AzRoleAssignment -ObjectId "$userId" | Format-Table | Out-String
+            $psOutput = Get-AzRoleAssignment -ObjectId "$userId" | Format-list | Out-String
             Write-Host $psOutput
         }
         
@@ -1880,7 +1880,7 @@ function LootMenu {
         Write-Host "1. Key Vaults"
         Write-Host "2. Storage"
         Write-Host "3. Container Apps"
-        Write-Host "4. Hail Mary via Get-AzPasswords from MicroBurst"
+        Write-Host "4. Hail Mary via Get-AzPasswords from MicroBurst (Az PS Module)"
         Write-Host "B. Return to Main Menu"
 
         $userInput = Read-Host -Prompt "Select an option"
