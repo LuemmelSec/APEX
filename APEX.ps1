@@ -2358,62 +2358,130 @@ function ListStorageResources {
 
 # Function to list blobs in a storage container
 function ListBlobsInContainer {
-    Clear-Host
-    DisplayHeader
-    Write-Host "List Blobs in Storage Container" -ForegroundColor Cyan
-
-    Write-Host "Enter the storage account name:" -ForegroundColor Yellow
-    $accountName = Read-Host
-
-    Write-Host "Enter the container name:" -ForegroundColor Yellow
-    $containerName = Read-Host
-
-    Write-Host "Select authentication method:" -ForegroundColor Yellow
-    Write-Host "1. Current Account" -ForegroundColor Yellow
-    Write-Host "2. SAS Token" -ForegroundColor Yellow
-    Write-Host "3. Connection String" -ForegroundColor Yellow
-    $authChoice = Read-Host
-
-    $sasToken = ""
-    $connectionString = ""
-
-    if ($authChoice -eq "2") {
-        Write-Host "Enter SAS token:" -ForegroundColor Yellow
-        $sasToken = Read-Host
-    } elseif ($authChoice -eq "3") {
-        Write-Host "Enter Connection String:" -ForegroundColor Yellow
-        $connectionString = Read-Host
-    }
-
-    Start-Sleep -Seconds 2
-
-    try {
+    while ($true) {
         Clear-Host
         DisplayHeader
-        Write-Host "AZ CLI output:" -ForegroundColor Magenta
+        Write-Host "List Blobs in Storage Container" -ForegroundColor Cyan
 
-        if ($authChoice -eq "1") {
-            # Use current account
-            $blobOutput = az storage blob list --account-name $accountName --container-name $containerName --output table | Out-String
-            Write-Host $blobOutput -ForegroundColor DarkMagenta
-        } elseif ($authChoice -eq "2") {
-            # Use SAS token
-            $blobOutput = az storage blob list --account-name $accountName --container-name $containerName --sas-token "`"$sasToken`"" --output table | Out-String
-            Write-Host $blobOutput -ForegroundColor DarkMagenta
-        } elseif ($authChoice -eq "3") {
-            # Use connection string
-            $blobOutput = az storage blob list --account-name $accountName --container-name $containerName --connection-string "$connectionString" --output table | Out-String
-            Write-Host $blobOutput -ForegroundColor DarkMagenta
-        } else {
-            Write-Host "Invalid selection, returning to storage menu." -ForegroundColor Red
+        Write-Host "Enter the storage account name:" -ForegroundColor Yellow
+        $accountName = Read-Host
+
+        Write-Host "Enter the container name:" -ForegroundColor Yellow
+        $containerName = Read-Host
+
+        Write-Host "Select tool(s) to use:" -ForegroundColor Yellow
+        Write-Host "1. Azure CLI" -ForegroundColor Yellow
+        Write-Host "2. Az PS Module" -ForegroundColor Yellow
+        Write-Host "M. Return to Main Menu" -ForegroundColor Yellow
+        $toolChoice = Read-Host
+
+        if ($toolChoice -eq "M") {
+            return
         }
-    }
-    catch {
-        Write-Host "Error retrieving blobs: $_" -ForegroundColor Red
-    }
 
-    Write-Host "`nPress any key to return to the storage menu..."
-    [void][System.Console]::ReadKey($true)
+        Write-Host "Select authentication method:" -ForegroundColor Yellow
+        Write-Host "1. Current Account" -ForegroundColor Yellow
+        Write-Host "2. SAS Token (only Azure CLI)" -ForegroundColor Yellow
+        Write-Host "3. Connection String (only Azure CLI)" -ForegroundColor Yellow
+        Write-Host "B. Back to Previous Step" -ForegroundColor Yellow
+        Write-Host "M. Return to Main Menu" -ForegroundColor Yellow
+        $authChoice = Read-Host
+
+        if ($authChoice -eq "M") {
+            return
+        }
+        if ($authChoice -eq "B") {
+            continue
+        }
+
+        $sasToken = ""
+        $connectionString = ""
+
+        if ($authChoice -eq "2") {
+            Write-Host "Enter SAS token:" -ForegroundColor Yellow
+            $sasToken = Read-Host
+        } elseif ($authChoice -eq "3") {
+            Write-Host "Enter Connection String:" -ForegroundColor Yellow
+            $connectionString = Read-Host
+        }
+
+        Start-Sleep -Seconds 2
+
+        $blobs = @()
+
+        try {
+            Clear-Host
+            DisplayHeader
+
+            if ($toolChoice -eq "1") {
+                Write-Host "Using Azure CLI..." -ForegroundColor Magenta
+                if ($authChoice -eq "1") {
+                    $blobOutput = az storage blob list --account-name $accountName --container-name $containerName --auth-mode login --query "[].name" -o tsv
+                    $blobs = $blobOutput -split "`n" | Where-Object { $_ -ne "" }
+                } elseif ($authChoice -eq "2") {
+                    $blobOutput = az storage blob list --account-name $accountName --container-name $containerName --sas-token "`"$sasToken`"" --query "[].name" -o tsv
+                    $blobs = $blobOutput -split "`n" | Where-Object { $_ -ne "" }
+                } elseif ($authChoice -eq "3") {
+                    $blobOutput = az storage blob list --account-name $accountName --container-name $containerName --connection-string "$connectionString" --query "[].name" -o tsv
+                    $blobs = $blobOutput -split "`n" | Where-Object { $_ -ne "" }
+                }
+            } elseif ($toolChoice -eq "2") {
+                Write-Host "Using Az PowerShell Module..." -ForegroundColor Magenta
+                $context = New-AzStorageContext -StorageAccountName $accountName
+                $blobList = Get-AzStorageBlob -Container $containerName -Context $context
+                $blobs = $blobList | Select-Object -ExpandProperty Name
+            } else {
+                Write-Host "Invalid tool selection. Returning to storage menu." -ForegroundColor Red
+                return
+            }
+
+            if ($blobs.Count -gt 0) {
+                while ($true) {
+                    Write-Host "`nBlobs found:" -ForegroundColor Yellow
+                    for ($i = 0; $i -lt $blobs.Count; $i++) {
+                        Write-Host "$($i + 1). $($blobs[$i])" -ForegroundColor Green
+                    }
+
+                    Write-Host "Select a blob to view its content or:"
+                    Write-Host "B. Back to Container Selection" -ForegroundColor Cyan
+                    Write-Host "M. Return to Main Menu" -ForegroundColor Cyan
+                    $selectedOption = Read-Host
+
+                    if ($selectedOption -eq "B") {
+                        break
+                    }
+                    if ($selectedOption -eq "M") {
+                        return
+                    }
+
+                    if ($selectedOption -ge 1 -and $selectedOption -le $blobs.Count) {
+                        $selectedBlob = $blobs[$selectedOption - 1].Trim()
+
+                        if ($toolChoice -eq "1") {
+                            Write-Host "`nViewing content of blob '$selectedBlob' using Azure CLI..." -ForegroundColor Yellow
+                            $contentOutput = az storage blob download --account-name $accountName --container-name $containerName --name $selectedBlob --file "$selectedBlob" --auth-mode login --output none
+                            Get-Content -Path "$selectedBlob" | Write-Host -ForegroundColor DarkMagenta
+                        } elseif ($toolChoice -eq "2") {
+                            Write-Host "`nViewing content of blob '$selectedBlob' using Az PowerShell Module..." -ForegroundColor Yellow
+                            Get-AzStorageBlobContent -Container $containerName -Blob $selectedBlob -Context $context -Destination "$selectedBlob" -Force
+                            Get-Content -Path "$selectedBlob" | Write-Host -ForegroundColor DarkMagenta
+                        }
+                        Remove-Item -Path "$selectedBlob" -Force
+                    } else {
+                        Write-Host "Invalid selection, no blob chosen." -ForegroundColor Red
+                    }
+                }
+            } else {
+                Write-Host "No blobs found in the container." -ForegroundColor Red
+            }
+        }
+        catch {
+            Write-Host "Error retrieving blobs: $_" -ForegroundColor Red
+        }
+
+        Write-Host "`nPress any key to return to the storage menu..."
+        [void][System.Console]::ReadKey($true)
+    }
 }
 
 # Container Apps Management Menu
