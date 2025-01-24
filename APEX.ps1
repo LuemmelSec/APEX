@@ -2360,7 +2360,7 @@ function ListStorageResources {
 function ListBlobsInContainer {
     while ($true) {
         Clear-Host
-        # DisplayHeader
+        DisplayHeader
         Write-Host "List Storage Resources" -ForegroundColor Cyan
         Write-Host "Select tool(s) to use:" -ForegroundColor Yellow
         Write-Host "1. Azure CLI" -ForegroundColor Yellow
@@ -2420,7 +2420,7 @@ function ListBlobsInContainer {
                 try {
                     if ($toolChoice -eq "1") {
                         Clear-Host
-                        # DisplayHeader
+                        DisplayHeader
                         Write-Host "Using Azure CLI to list containers..." -ForegroundColor Magenta
                         if ($authChoice -eq "1") {
                             Write-Host "We need to re-login with the scope https://storage.azure.com/.default" -ForegroundColor Magenta
@@ -2450,7 +2450,7 @@ function ListBlobsInContainer {
 
                     } elseif ($toolChoice -eq "2") {
                         Clear-Host
-                        # DisplayHeader
+                        DisplayHeader
                         Write-Host "Using Az PowerShell Module to list containers..." -ForegroundColor Magenta
                         $context = New-AzStorageContext -StorageAccountName $accountName
                         $containerList = Get-AzStorageContainer -Context $context
@@ -2483,7 +2483,7 @@ function ListBlobsInContainer {
                                     try {
                                         if ($toolChoice -eq "1") {
                                             Clear-Host
-                                            # DisplayHeader
+                                            DisplayHeader
                                             Write-Host "Using Azure CLI to list blobs..." -ForegroundColor Magenta
                                             if ($authChoice -eq "1") {
                                                 $blobOutput = az storage blob list --account-name $accountName --container-name $selectedContainer --auth-mode login --query "[].name" -o tsv
