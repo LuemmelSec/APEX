@@ -2608,7 +2608,7 @@ function ListContainerApps {
 
     try {
         Clear-Host
-        
+        DisplayHeader
         
         if ($toolChoice -eq "1" -or $toolChoice -eq "4") {
             Write-Host "AZ CLI output:" -ForegroundColor Magenta
