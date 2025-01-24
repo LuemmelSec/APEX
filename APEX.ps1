@@ -2428,10 +2428,10 @@ function ListBlobsInContainer {
                             Write-Host "1. Interactively" -ForegroundColor Yellow
                             Write-Host "2. Service Princial" -ForegroundColor Yellow
                             $select = Read-Host ("Pelase givbeas ame")
-                                if ($select = "1"){
+                                if ($select -eq "1"){
                                     az login --scope "https://storage.azure.com/.default"
                                 }
-                                elseif ($select = "2"){
+                                elseif ($select -eq "2"){
                                     Write-Host "Enter the application (client) ID:" -ForegroundColor Yellow
                                     $appId = Read-Host
                                     Write-Host "Enter the client secret:" -ForegroundColor Yellow
