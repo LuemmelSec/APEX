@@ -2417,6 +2417,8 @@ function ListBlobsInContainer {
                         }
 
                         if ($authChoice -eq "1") {
+                            Clear-Host
+                            DisplayHeader
                             Write-Host "We need to re-login with the scope https://storage.azure.com/.default" -ForegroundColor Magenta
                             Write-Host "Login interactively or as Service Principal?"
                             Write-Host "1. Interactively" -ForegroundColor Yellow
@@ -2521,10 +2523,30 @@ function ListBlobsInContainer {
                         if ($selectedBlobIndex -eq "B") {
                             break
                         }
-
+                    
                         if ($selectedBlobIndex -ge 1 -and $selectedBlobIndex -le $blobs.Count) {
-                            $selectedBlob = $blobs[$selectedBlobIndex - 1]
+                            $selectedBlob = $blobs[$selectedBlobIndex - 1].Trim()
                             Write-Host "`nBlob selected: $selectedBlob" -ForegroundColor Yellow
+                    
+                            try {
+                                if ($toolChoice -eq "1") {
+                                    Write-Host "`nViewing content of blob '$selectedBlob' using Azure CLI..." -ForegroundColor Yellow
+                                    az storage blob download --account-name $accountName --container-name $selectedContainer --name $selectedBlob --file "$selectedBlob" --auth-mode login --output none
+                                    Write-Host "`nContent of the blob:" -ForegroundColor Cyan
+                                    Get-Content -Path "$selectedBlob" | Write-Host -ForegroundColor DarkMagenta
+                                    Remove-Item -Path "$selectedBlob" -Force  # Clean up the downloaded blob
+                                    Pause
+                                } elseif ($toolChoice -eq "2") {
+                                    Write-Host "`nViewing content of blob '$selectedBlob' using Az PowerShell Module..." -ForegroundColor Yellow
+                                    Get-AzStorageBlobContent -Container $selectedContainer -Blob $selectedBlob -Context $context -Destination "$selectedBlob" -Force
+                                    Write-Host "`nContent of the blob:" -ForegroundColor Cyan
+                                    Get-Content -Path "$selectedBlob" | Write-Host -ForegroundColor DarkMagenta
+                                    Remove-Item -Path "$selectedBlob" -Force  # Clean up the downloaded blob
+                                    Pause
+                                }
+                            } catch {
+                                Write-Host "Error viewing blob content: $_" -ForegroundColor Red
+                            }
                         } else {
                             Write-Host "Invalid selection, try again." -ForegroundColor Red
                         }
