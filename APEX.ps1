@@ -2427,7 +2427,7 @@ function ListBlobsInContainer {
                             Write-Host "Login interactively or as Service Principal?"
                             Write-Host "1. Interactively" -ForegroundColor Yellow
                             Write-Host "2. Service Princial" -ForegroundColor Yellow
-                            $select = Read-Host ("Pelase givbeas ame")
+                            $select = Read-Host
                                 if ($select -eq "1"){
                                     az login --scope "https://storage.azure.com/.default"
                                 }
@@ -2436,7 +2436,7 @@ function ListBlobsInContainer {
                                     $appId = Read-Host
                                     Write-Host "Enter the client secret:" -ForegroundColor Yellow
                                     $clientSecret = Read-Host
-                                    az login --scope https://storage.azure.com/.default --service-principal -u $appId -p $clientSecret
+                                    az login --scope "https://storage.azure.com/.default" --service-principal - u $appId -p $clientSecret --tenant $Global:tenantId
                                 }
                             $containerOutput = az storage container list --account-name $accountName --query "[].name" -o tsv --auth-mode login
                         }
