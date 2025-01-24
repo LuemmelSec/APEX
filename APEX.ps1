@@ -2427,7 +2427,7 @@ function ListBlobsInContainer {
                             Write-Host "Login interactively or as Service Principal?"
                             Write-Host "1. Interactively" -ForegroundColor Yellow
                             Write-Host "2. Service Princial" -ForegroundColor Yellow
-                            $select = Read-Host
+                            $select = Read-Host ("Pelase givbeas ame")
                                 if ($select = "1"){
                                     az login --scope "https://storage.azure.com/.default"
                                 }
