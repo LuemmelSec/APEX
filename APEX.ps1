@@ -2424,7 +2424,20 @@ function ListBlobsInContainer {
                         Write-Host "Using Azure CLI to list containers..." -ForegroundColor Magenta
                         if ($authChoice -eq "1") {
                             Write-Host "We need to re-login with the scope https://storage.azure.com/.default" -ForegroundColor Magenta
-                            az login --scope "https://storage.azure.com/.default"
+                            Write-Host "Login interactively or as Service Principal?"
+                            Write-Host "1. Interactively" -ForegroundColor Yellow
+                            Write-Host "2. Service Princial" -ForegroundColor Yellow
+                            $select = Read-Host
+                                if ($select = "1"){
+                                    az login --scope "https://storage.azure.com/.default"
+                                }
+                                elseif ($select = "2"){
+                                    Write-Host "Enter the application (client) ID:" -ForegroundColor Yellow
+                                    $appId = Read-Host
+                                    Write-Host "Enter the client secret:" -ForegroundColor Yellow
+                                    $clientSecret = Read-Host
+                                    az login --scope https://storage.azure.com/.default --service-principal -u $appId -p $clientSecret
+                                }
                             $containerOutput = az storage container list --account-name $accountName --query "[].name" -o tsv --auth-mode login
                         }
                         elseif ($authChoice -eq "2") {
