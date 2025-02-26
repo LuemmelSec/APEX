@@ -706,7 +706,6 @@ function QueriesMenu {
         Write-Host "10. Get App Details (CLI only)"
         Write-Host "11. Dynamic Groups (Graph only)"
         Write-Host "12. Conditional Access Policies as low Priv User (needs AZ CLI and Graph Session and will only work till MS kills the Windows Graph API!!!)"
-        Write-Host "13. Raw Command Prompt"
         Write-Host "B. Return to Main Menu"
 
         $userInput = Read-Host -Prompt "Select an option"
@@ -746,9 +745,6 @@ function QueriesMenu {
             }
             "12" {
                 ConditionalAccessPoliciesQuery
-            }
-            "13" {
-                RawCommandPrompt
             }
             "B" {
                 return
@@ -1638,32 +1634,6 @@ function GroupMembersQuery {
 
     Write-Host "`nPress any key to return to the queries menu..."
     [void][System.Console]::ReadKey($true)
-}
-
-# Function to handle raw PowerShell command execution
-function RawCommandPrompt {
-    Clear-Host
-    DisplayHeader
-    Write-Host "Raw Command Prompt" -ForegroundColor Cyan
-    Write-Host "Enter 'exit' to return to the queries menu." -ForegroundColor Yellow
-
-    while ($true) {
-        try {
-            $command = Read-Host -Prompt "PS"
-            if ($command -eq "exit") {
-                break
-            }
-            Clear-Host
-            DisplayHeader
-            Write-Host "Raw Command Prompt" -ForegroundColor Cyan
-            Write-Host "PS: $command" -ForegroundColor Yellow
-            $output = Invoke-Expression $command 2>&1 | Out-String
-            Write-Host $output
-        }
-        catch {
-            Write-Host "Error executing command: $_" -ForegroundColor Red
-        }
-    }
 }
 
 # Attacks menu structure
@@ -3365,6 +3335,7 @@ function ToolMenu {
         Write-Host "3. Attacks"
         Write-Host "4. Loot"
         Write-Host "5. Tokens"
+        Write-Host "6. Raw Console"
         Write-Host "C. Check Tools and Updates"
         Write-Host "Q. Quit"
 
@@ -3385,6 +3356,9 @@ function ToolMenu {
             "5" {
                 TokensMenu
             }
+            "6" {
+                RawCommandPrompt
+            }
             "C" {
                 Clear-Host
                 Write-Host "Checking installations and updates..."
@@ -3402,6 +3376,32 @@ function ToolMenu {
                 Write-Host "`nPress any key to continue..."
                 [void][System.Console]::ReadKey($true)
             }
+        }
+    }
+}
+
+# Function to handle raw PowerShell command execution
+function RawCommandPrompt {
+    Clear-Host
+    DisplayHeader
+    Write-Host "Raw Command Prompt" -ForegroundColor Cyan
+    Write-Host "Enter 'exit' to return to the queries menu." -ForegroundColor Yellow
+
+    while ($true) {
+        try {
+            $command = Read-Host -Prompt "PS"
+            if ($command -eq "exit") {
+                break
+            }
+            Clear-Host
+            DisplayHeader
+            Write-Host "Raw Command Prompt" -ForegroundColor Cyan
+            Write-Host "PS: $command" -ForegroundColor Yellow
+            $output = Invoke-Expression $command 2>&1 | Out-String
+            Write-Host $output
+        }
+        catch {
+            Write-Host "Error executing command: $_" -ForegroundColor Red
         }
     }
 }
