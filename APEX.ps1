@@ -1342,7 +1342,13 @@ function RoleAssignmentsQuery {
         # Az PowerShell Module
         if ($toolChoice -eq "2" -or $toolChoice -eq "4") {
             Write-Host "AZ PS Module output:" -ForegroundColor Magenta
-            $psOutput = Get-AzRoleAssignment -ObjectId "$userId" | Format-list | Out-String
+            if ($userId){
+                $psOutput = Get-AzRoleAssignment -ObjectId "$userId" | Format-list | Out-String
+            }
+            else {
+                $psOutput = Get-AzRoleAssignment | Format-list | Out-String
+            } 
+            
             Write-Host $psOutput
         }
         
@@ -2948,7 +2954,7 @@ function TokensMenu {
         Write-Host "Tokens Menu with Functions from Fabian Bader's TokenTactics v2" -ForegroundColor Cyan
         Write-Host "1. Invoke-RefreshToAzureManagementToken - needed for Az PowerShell Module"
         Write-Host "2. Invoke-RefreshToAzureCoreManagementToken"
-        Write-Host "3. Invoke-RefreshToGraphToken - needed for Graph PowerShell Module"
+        Write-Host "3. Invoke-RefreshToMsGraphToken - needed for Graph PowerShell Module"
         Write-Host "4. Invoke-RefreshToAzureKeyVaultToken - needed to login to Azure PS for KeyVault Access"
         Write-Host "B. Return to Main Menu"
 
@@ -2961,7 +2967,7 @@ function TokensMenu {
                 Invoke-RefreshToAzureCoreManagementToken
             }
             "3" {
-                Invoke-RefreshToGraphToken
+                Invoke-RefreshToMsGraphToken
             }
             "4" {
                 Invoke-RefreshToAzureKeyVaultToken
@@ -3191,13 +3197,13 @@ function Invoke-RefreshToAzureCoreManagementToken {
     Pause
 }
 
-function Invoke-RefreshToGraphToken {
-    <#
+function Invoke-RefreshToMSGraphToken {
+     <#
     .DESCRIPTION
-        Generate a windows graph token from a refresh token.
+        Generate a Microsoft Graph token from a refresh token.
     .EXAMPLE
-        Invoke-RefreshToGraphToken -domain myclient.org -refreshToken ey....
-        $GraphToken.access_token
+        Invoke-RefreshToMSGraphToken -domain myclient.org -refreshToken ey....
+        $MSGraphToken.access_token
     #>
     [cmdletbinding()]
     Param(
@@ -3216,7 +3222,7 @@ function Invoke-RefreshToGraphToken {
         Device       = $Device
         Browser      = $Browser
         UseCAE       = $UseCAE
-        Scope        = "https://graph.windows.net/.default offline_access openid"
+        Scope        = "https://graph.microsoft.com/.default offline_access openid"
     }
 
     # Device and Browser options
