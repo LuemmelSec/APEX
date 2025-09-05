@@ -1802,11 +1802,41 @@ function GraphRunnerBypassMFA {
     # Reset global token variable
     $global:tokens = $null
 
-    # Define the device and browser combinations
-    $devices = @('Mac', 'Windows', 'AndroidMobile', 'iPhone')
-    $browsers = @('Android', 'IE', 'Chrome', 'Firefox', 'Edge', 'Safari')
+    # Define the device and browser options
+    $deviceOptions = @('Mac', 'Windows', 'Linux', 'AndroidMobile', 'iPhone', 'OS/2', 'PlayStation')
+    $browserOptions = @('Android', 'IE', 'Chrome', 'Firefox', 'Edge', 'Safari')
 
-    # Label for nested loop
+    # Ask if user wants to specify custom Device/Browser
+    Write-Host "Would you like to specify a custom Device and Browser header? (Y/N)" -ForegroundColor Yellow
+    $customHeaders = Read-Host
+
+    $devices = @()
+    $browsers = @()
+
+    if ($customHeaders -eq "Y") {
+        # Display device options
+        Write-Host "`nSelect Device:" -ForegroundColor Yellow
+        for ($i = 0; $i -lt $deviceOptions.Count; $i++) {
+            Write-Host "$($i + 1). $($deviceOptions[$i])"
+        }
+        $selectedDeviceIndex = Read-Host "Enter the number corresponding to the Device"
+        $devices = @($deviceOptions[$selectedDeviceIndex - 1])
+
+        # Display browser options
+        Write-Host "`nSelect Browser:" -ForegroundColor Yellow
+        for ($i = 0; $i -lt $browserOptions.Count; $i++) {
+            Write-Host "$($i + 1). $($browserOptions[$i])"
+        }
+        $selectedBrowserIndex = Read-Host "Enter the number corresponding to the Browser"
+        $browsers = @($browserOptions[$selectedBrowserIndex - 1])
+    }
+    else {
+        # Default: test all devices and browsers
+        $devices = $deviceOptions
+        $browsers = $browserOptions
+    }
+
+    # Loop through all variants to see if we can bypass
     :OuterLoop foreach ($device in $devices) {
         foreach ($browser in $browsers) {
             try {
@@ -1837,6 +1867,7 @@ function GraphRunnerBypassMFA {
     Write-Host "`nTesting completed. Press any key to return to the menu..."
     [void][System.Console]::ReadKey($true)
 }
+
 
 <# 
 Function to invoke MFASweep directly from GitHub https://github.com/dafthack/MFASweep
@@ -2987,6 +3018,7 @@ function TokensMenu {
 function Invoke-RefreshToToken {
     [CmdletBinding()]
     param (
+        [Alias("ResourceTenant")]
         [Parameter(Mandatory = $true)]
         [string]$Domain,
         [Parameter(Mandatory = $true)]
@@ -2998,29 +3030,32 @@ function Invoke-RefreshToToken {
         [Parameter(Mandatory = $false)]
         [string]$Resource,
         [Parameter(Mandatory = $False)]
-        [String]$Device,
+        [string]$CustomUserAgent,
         [Parameter(Mandatory = $False)]
-        [String]$Browser,
+        [string]$Device,
+        [Parameter(Mandatory = $False)]
+        [string]$Browser,
         [Parameter(Mandatory = $False)]
         [Switch]$UseCAE,
         [Parameter(Mandatory = $False)]
         [Switch]$UseDoD,
         [Parameter(Mandatory = $False)]
         [Switch]$UseV1Endpoint
+
     )
 
-    if ($Device) {
+    if ($CustomUserAgent) {
+        $UserAgent = $CustomUserAgent
+    } elseif ($Device) {
         if ($Browser) {
             $UserAgent = Invoke-ForgeUserAgent -Device $Device -Browser $Browser
         } else {
             $UserAgent = Invoke-ForgeUserAgent -Device $Device
         }
+    } elseif ($Browser) {
+        $UserAgent = Invoke-ForgeUserAgent -Browser $Browser
     } else {
-        if ($Browser) {
-            $UserAgent = Invoke-ForgeUserAgent -Browser $Browser
-        } else {
-            $UserAgent = Invoke-ForgeUserAgent
-        }
+        $UserAgent = Invoke-ForgeUserAgent
     }
 
     Write-Verbose "UserAgent: $UserAgent"
@@ -3064,7 +3099,7 @@ function Invoke-RefreshToToken {
     }
 
     $Token = Invoke-RestMethod -UseBasicParsing -Method Post -Uri $uri -Headers $Headers -Body $body
-    Return $Token
+    return $Token
 }
 
 function Invoke-RefreshToAzureManagementToken {
@@ -3076,12 +3111,23 @@ function Invoke-RefreshToAzureManagementToken {
         $AzureManagementToken.access_token
     #>
     [cmdletbinding()]
-    Param(
+    param(
+        [Alias("ResourceTenant")]
+        [Parameter(Mandatory = $false)]
+        [string]$Domain,
         [Parameter(Mandatory = $true)]
         [string]$RefreshToken = $response.refresh_token,
         [Parameter(Mandatory = $false)]
         $ClientId = "d3590ed6-52b3-4102-aeff-aad2292ab01c",
-        [Parameter(Mandatory = $false)]
+        [Parameter(Mandatory = $False)]
+        [string]$CustomUserAgent,
+        [Parameter(Mandatory = $False)]
+        [ValidateSet('Mac', 'Windows', 'Linux', 'AndroidMobile', 'iPhone', 'OS/2')]
+        [string]$Device,
+        [Parameter(Mandatory = $False)]
+        [ValidateSet('Android', 'IE', 'Chrome', 'Firefox', 'Edge', 'Safari')]
+        [string]$Browser,
+        [Parameter(Mandatory = $False)]
         [Switch]$UseCAE
     )
 
@@ -3095,7 +3141,7 @@ function Invoke-RefreshToAzureManagementToken {
     }
 
     # Device and Browser options
-    $deviceOptions = @('Mac', 'Windows', 'Linux', 'AndroidMobile', 'iPhone', 'OS/2')
+    $deviceOptions = @('Mac', 'Windows', 'Linux', 'AndroidMobile', 'iPhone', 'OS/2', 'PlayStation')
     $browserOptions = @('Android', 'IE', 'Chrome', 'Firefox', 'Edge', 'Safari')
 
     # Prompt user for custom headers
@@ -3161,7 +3207,7 @@ function Invoke-RefreshToAzureCoreManagementToken {
     }
 
     # Device and Browser options
-    $deviceOptions = @('Mac', 'Windows', 'Linux', 'AndroidMobile', 'iPhone', 'OS/2')
+    $deviceOptions = @('Mac', 'Windows', 'Linux', 'AndroidMobile', 'iPhone', 'OS/2', 'PlayStation')
     $browserOptions = @('Android', 'IE', 'Chrome', 'Firefox', 'Edge', 'Safari')
 
     # Prompt user for custom headers
@@ -3226,7 +3272,7 @@ function Invoke-RefreshToMSGraphToken {
     }
 
     # Device and Browser options
-    $deviceOptions = @('Mac', 'Windows', 'Linux', 'AndroidMobile', 'iPhone', 'OS/2')
+    $deviceOptions = @('Mac', 'Windows', 'Linux', 'AndroidMobile', 'iPhone', 'OS/2', 'PlayStation')
     $browserOptions = @('Android', 'IE', 'Chrome', 'Firefox', 'Edge', 'Safari')
 
     # Prompt user for custom headers
@@ -3292,7 +3338,7 @@ function Invoke-RefreshToAzureKeyVaultToken {
     }
 
     # Device and Browser options
-    $deviceOptions = @('Mac', 'Windows', 'Linux', 'AndroidMobile', 'iPhone', 'OS/2')
+    $deviceOptions = @('Mac', 'Windows', 'Linux', 'AndroidMobile', 'iPhone', 'OS/2', 'PlayStation')
     $browserOptions = @('Android', 'IE', 'Chrome', 'Firefox', 'Edge', 'Safari')
 
     # Prompt user for custom headers
@@ -3532,7 +3578,7 @@ function Get-GraphTokens{
     [Parameter(Position = 4,Mandatory=$False)]
     [String]$Resource = "https://graph.microsoft.com",
     [Parameter(Position = 5,Mandatory=$False)]
-    [ValidateSet('Mac','Windows','AndroidMobile','iPhone')]
+    [ValidateSet('Mac','Windows','AndroidMobile','iPhone', 'OS/2', 'PlayStation')]
     [String]$Device,
     [Parameter(Position = 6,Mandatory=$False)]
     [ValidateSet('Android','IE','Chrome','Firefox','Edge','Safari')]
@@ -3685,7 +3731,7 @@ function Invoke-ForgeUserAgent
     [cmdletbinding()]
     Param(
         [Parameter(Mandatory = $False)]
-        [ValidateSet('Mac', 'Windows', 'Linux', 'AndroidMobile', 'iPhone', 'OS/2')]
+        [ValidateSet('Mac', 'Windows', 'Linux', 'AndroidMobile', 'iPhone', 'OS/2', 'PlayStation')]
         [String]$Device = "Windows",
         [Parameter(Mandatory = $False)]
         [ValidateSet('Android', 'IE', 'Chrome', 'Firefox', 'Edge', 'Safari')]
@@ -3761,6 +3807,13 @@ function Invoke-ForgeUserAgent
             } else {
                 Write-Warning "Device platform not found, defaulting to OS/2 Firefox"
                 $UserAgent = 'Mozilla/5.0 (OS/2; U; Warp 4.5; en-US; rv:80.7.12) Gecko/20050922 Firefox/80.0.7'
+            }
+        } elseif ($Device -eq 'Playstation') {
+            if ($Browser -eq 'Firefox') {
+                $UserAgent = 'Mozilla/5.0 (PlayStation 5 3.03/SmartTV) AppleWebKit/605.1.15 (KHTML, like Gecko)'
+            } else {
+                Write-Warning "Device platform not found, defaulting to PlayStation Firefox"
+                $UserAgent = 'Mozilla/5.0 (PlayStation 5 3.03/SmartTV) AppleWebKit/605.1.15 (KHTML, like Gecko)'
             }
         } else {
             if ($Browser -eq 'Android') {
